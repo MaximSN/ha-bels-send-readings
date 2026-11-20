@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 import aiohttp
@@ -41,11 +41,16 @@ def build_payload(
     email: str,
     readings: dict[str, int | float | None],
     browser: dict | None = None,
+    reading_date: str | None = None,
 ) -> dict:
     browser = browser or {}
+    if reading_date:
+        parsed_date = date.fromisoformat(reading_date)
+    else:
+        parsed_date = datetime.now(ZoneInfo("Europe/Moscow")).date()
     data = {
         "pattern-licevoy-schet": account,
-        "date-data": datetime.now(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y"),
+        "date-data": parsed_date.strftime("%d.%m.%Y"),
         "pattern-pokazaniya-obshchie-den": "" if readings.get("day") is None else str(readings["day"]),
         "pattern-pokazaniya-noch": "" if readings.get("night") is None else str(readings["night"]),
         "pattern-pokazaniya-pik": "" if readings.get("peak") is None else str(readings["peak"]),
