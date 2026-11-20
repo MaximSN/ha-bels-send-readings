@@ -11,10 +11,19 @@ class BelsPanel extends HTMLElement {
     const last = hass.states["sensor.bels_last_submission"];
     const entries = history?.attributes?.entries || [];
     const lastStatus = last?.state || "unknown";
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Moscow",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).format(new Date());
+    if (!this._selectedDate) this._selectedDate = today;
     this.shadowRoot.innerHTML = `
       <ha-card header="БЭЛС — передача показаний">
         <div class="content">
           <div class="status">${this._escape(lastStatus === "success" ? "Последняя отправка: успешно" : lastStatus === "error" ? "Последняя отправка: ошибка" : "Пока нет отправок")}</div>
+          <label for="reading-date">Дата показаний</label>
+          <input id="reading-date" type="date" value="${this._escape(this._selectedDate)}">
           <div class="actions">
             <mwc-button raised id="send">Отправить показания</mwc-button>
             <mwc-button id="history">История отправок (${entries.length})</mwc-button>
@@ -23,16 +32,28 @@ class BelsPanel extends HTMLElement {
         </div>
       </ha-card>
       <style>
-        .content{padding:16px}.status{margin-bottom:14px}.actions{display:flex;gap:8px;flex-wrap:wrap}
+        .content{padding:16px}.status{margin-bottom:14px}label{display:block;margin-bottom:6px;font-size:14px}
+        input[type=date]{box-sizing:border-box;max-width:100%;padding:10px 12px;margin-bottom:16px;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit}
+        .actions{display:flex;gap:8px;flex-wrap:wrap}
         #details{margin-top:16px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}
         td,th{text-align:left;padding:7px;border-bottom:1px solid var(--divider-color);vertical-align:top}
         .error{color:var(--error-color)}.success{color:var(--success-color)}
       </style>`;
+    this.shadowRoot.getElementById("reading-date").addEventListener("change", event => {
+      this._selectedDate = event.target.value || today;
+    });
     this.shadowRoot.getElementById("send").addEventListener("click", async () => {
       const button = this.shadowRoot.getElementById("send");
+      const dateInput = this.shadowRoot.getElementById("reading-date");
+      if (!dateInput.value) {
+        this._showMessage("Выберите дату показаний.");
+        return;
+      }
+      this._selectedDate = dateInput.value;
       button.disabled = true;
       try {
         await hass.callService("bels", "submit_readings", {
+          date: dateInput.value,
           screen_width: window.screen?.width || 0,
           screen_height: window.screen?.height || 0,
           viewport_width: window.innerWidth || 0,
