@@ -26,12 +26,12 @@ class BelsBaseSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_{suffix}"
         self._attr_name = name
+        self._attr_suggested_object_id = suffix if suffix != "last_submission" else "bels_last_submission"
 
 
 class BelsHistorySensor(BelsBaseSensor):
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "history", "BELS History")
-        self.entity_id = "sensor.bels_history"
 
     @property
     def native_value(self):
@@ -45,7 +45,6 @@ class BelsHistorySensor(BelsBaseSensor):
 class BelsLastSubmissionSensor(BelsBaseSensor):
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "last_submission", "BELS Last Submission")
-        self.entity_id = "sensor.bels_last_submission"
 
     @property
     def native_value(self):
