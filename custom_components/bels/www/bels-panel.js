@@ -7,28 +7,61 @@ class BelsPanel extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     if (!this.shadowRoot) return;
-    const history = hass.states["sensor.bels_history"];
-    const last = hass.states["sensor.bels_last_submission"];
-    const entries = history?.attributes?.entries || [];
-    const lastStatus = last?.state || "unknown";
-    const today = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Europe/Moscow",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit"
-    }).format(new Date());
-    if (!this._selectedDate) this._selectedDate = today;
+    if (!this._selectedDate) {
+      this._selectedDate = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Moscow",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).format(new Date());
+    }
+    if (!this._initialized) {
+      this._initialized = true;
+      hass.callWS({ type: "bels/history" }).then(result => {
+        this._entries = result.entries || [];
+        this._render();
+      }).catch(error => {
+        this._loadError = error.message;
+        this._render();
+      });
+      hass.connection.subscribeEvents(event => {
+        this._entries = event.data.entries || [];
+        this._render();
+      }, "bels_submission_finished").then(unsubscribe => {
+        this._unsubscribe = unsubscribe;
+      });
+    }
+    this._render();
+  }
+
+  disconnectedCallback() {
+    if (this._unsubscribe) {
+      this._unsubscribe();
+      this._unsubscribe = null;
+    }
+    this._initialized = false;
+  }
+
+  _render() {
+    if (!this.shadowRoot || !this._hass) return;
+    const entries = this._entries || [];
+    const lastStatus = entries[0]?.status || "unknown";
+    const statusText = lastStatus === "success"
+      ? "Последняя отправка: успешно"
+      : lastStatus === "error"
+        ? "Последняя отправка: ошибка"
+        : "Пока нет отправок";
     this.shadowRoot.innerHTML = `
       <ha-card header="БЭЛС — передача показаний">
         <div class="content">
-          <div class="status">${this._escape(lastStatus === "success" ? "Последняя отправка: успешно" : lastStatus === "error" ? "Последняя отправка: ошибка" : "Пока нет отправок")}</div>
+          <div class="status">${this._escape(this._loadError || statusText)}</div>
           <label for="reading-date">Дата показаний</label>
           <input id="reading-date" type="date" value="${this._escape(this._selectedDate)}">
           <div class="actions">
             <mwc-button raised id="send">Отправить показания</mwc-button>
             <mwc-button id="history">История отправок (${entries.length})</mwc-button>
           </div>
-          <div id="details" hidden></div>
+          <div id="details" ${this._historyVisible ? "" : "hidden"}></div>
         </div>
       </ha-card>
       <style>
@@ -40,7 +73,7 @@ class BelsPanel extends HTMLElement {
         .error{color:var(--error-color)}.success{color:var(--success-color)}
       </style>`;
     this.shadowRoot.getElementById("reading-date").addEventListener("change", event => {
-      this._selectedDate = event.target.value || today;
+      this._selectedDate = event.target.value || this._selectedDate;
     });
     this.shadowRoot.getElementById("send").addEventListener("click", async () => {
       const button = this.shadowRoot.getElementById("send");
@@ -52,7 +85,7 @@ class BelsPanel extends HTMLElement {
       this._selectedDate = dateInput.value;
       button.disabled = true;
       try {
-        await hass.callService("bels", "submit_readings", {
+        await this._hass.callService("bels", "submit_readings", {
           date: dateInput.value,
           screen_width: window.screen?.width || 0,
           screen_height: window.screen?.height || 0,
@@ -67,10 +100,14 @@ class BelsPanel extends HTMLElement {
       }
     });
     this.shadowRoot.getElementById("history").addEventListener("click", () => {
+      this._historyVisible = !this._historyVisible;
       const target = this.shadowRoot.getElementById("details");
-      target.hidden = !target.hidden;
-      target.innerHTML = this._historyHtml(entries);
+      target.hidden = !this._historyVisible;
+      if (this._historyVisible) target.innerHTML = this._historyHtml(entries);
     });
+    if (this._historyVisible) {
+      this.shadowRoot.getElementById("details").innerHTML = this._historyHtml(entries);
+    }
   }
 
   _historyHtml(entries) {
