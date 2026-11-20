@@ -26,7 +26,7 @@ class BelsBaseSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_{suffix}"
         self._attr_name = name
-        self._attr_suggested_object_id = suffix if suffix != "last_submission" else "bels_last_submission"
+        self._attr_suggested_object_id = "bels_history" if suffix == "history" else "bels_last_submission"
 
 
 class BelsHistorySensor(BelsBaseSensor):
