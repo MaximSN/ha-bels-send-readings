@@ -25,24 +25,34 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "www" / "bels-panel.js"
 CARD_URL = "/bels/bels-panel.js"
-CARD_VERSION = "0.3.0"
+CARD_VERSION = "0.4.0"
 
 
-def _reading(hass: HomeAssistant, entity_id: str | None, round_to: int):
+def _normalize_reading(value, label: str, round_to: int, optional: bool = False):
+    if value is None or (isinstance(value, str) and not value.strip()):
+        if optional:
+            return None
+        raise ValueError(f"Не указано обязательное показание «{label}»")
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"Показание «{label}» должно быть числом")
+    if not math.isfinite(number):
+        raise ValueError(f"Показание «{label}» должно быть конечным числом")
+    if round_to > 0:
+        number = math.ceil(number / round_to) * round_to
+    return int(number) if number.is_integer() else number
+
+
+def _reading(hass: HomeAssistant, entity_id: str | None, round_to: int, label: str, optional: bool = False):
     if not entity_id:
-        return None
+        if optional:
+            return None
+        raise ValueError(f"Не выбран сенсор «{label}»")
     state = hass.states.get(entity_id)
     if state is None:
         raise ValueError(f"Сущность {entity_id} не найдена")
-    try:
-        value = float(state.state)
-    except (TypeError, ValueError):
-        raise ValueError(f"Сущность {entity_id} не содержит числовое значение")
-    if not math.isfinite(value):
-        raise ValueError(f"Сущность {entity_id} содержит некорректное значение")
-    if round_to > 0:
-        value = math.ceil(value / round_to) * round_to
-    return int(value) if value.is_integer() else value
+    return _normalize_reading(state.state, label, round_to, optional)
 
 
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/history"})
@@ -131,31 +141,50 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         source: str = "manual",
         browser: dict | None = None,
         reading_date: str | None = None,
+        overrides: dict | None = None,
     ):
-        options = entry.options
-        round_to = int(options.get(CONF_ROUND_TO, 50))
-        readings = {
-            "day": _reading(hass, options.get(CONF_DAY_ENTITY, "sensor.elektroenergiia"), round_to),
-            "night": _reading(hass, options.get(CONF_NIGHT_ENTITY), round_to),
-            "peak": _reading(hass, options.get(CONF_PEAK_ENTITY), round_to),
-        }
-        payload = build_payload(
-            entry.data[CONF_ACCOUNT],
-            entry.data.get(CONF_PHONE, ""),
-            entry.data.get(CONF_EMAIL, ""),
-            readings,
-            browser,
-            reading_date,
-        )
+        payload = {}
+        response = {}
+        http_status = 0
         try:
+            options = entry.options
+            round_to = int(options.get(CONF_ROUND_TO, 50))
+            overrides = overrides or {}
+            readings = {}
+            fields = (
+                ("day", CONF_DAY_ENTITY, "Общие (день)", False),
+                ("night", CONF_NIGHT_ENTITY, "Ночь", True),
+                ("peak", CONF_PEAK_ENTITY, "Пик", True),
+            )
+            for key, entity_option, label, optional in fields:
+                if key in overrides:
+                    readings[key] = _normalize_reading(
+                        overrides[key], label, round_to, optional
+                    )
+                else:
+                    readings[key] = _reading(
+                        hass,
+                        options.get(entity_option, "sensor.elektroenergiia" if key == "day" else ""),
+                        round_to,
+                        label,
+                        optional,
+                    )
+
+            payload = build_payload(
+                entry.data[CONF_ACCOUNT],
+                entry.data.get(CONF_PHONE, ""),
+                entry.data.get(CONF_EMAIL, ""),
+                readings,
+                browser,
+                reading_date,
+            )
             response, http_status = await client.submit(payload)
             status, comment = interpret_response(response, http_status)
         except Exception as err:
             _LOGGER.exception("Ошибка отправки показаний БЭЛС")
             response = {"transport_error": str(err)}
-            http_status = 0
             status = "error"
-            comment = f"Ошибка соединения: {err}"
+            comment = str(err) if isinstance(err, ValueError) else f"Ошибка отправки: {err}"
 
         from datetime import datetime
         from zoneinfo import ZoneInfo
@@ -181,11 +210,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return item
 
     async def handle_submit(call: ServiceCall):
-        browser = dict(call.data)
-        reading_date = browser.pop("date", None)
-        await submit("manual", browser, reading_date)
+        data = dict(call.data)
+        reading_date = data.pop("date", None)
+        overrides = {
+            key: data.pop(key)
+            for key in ("day", "night", "peak")
+            if key in data
+        }
+        await submit("manual", data, reading_date, overrides)
 
-    hass.services.async_register(DOMAIN, "submit_readings", handle_submit)
+    hass.services.async_register(
+        DOMAIN,
+        "submit_readings",
+        handle_submit,
+        schema=vol.Schema({
+            vol.Optional("date"): str,
+            vol.Optional("day"): vol.Any(str, int, float),
+            vol.Optional("night"): vol.Any(str, int, float),
+            vol.Optional("peak"): vol.Any(str, int, float),
+            vol.Optional("screen_width"): vol.Any(str, int, float),
+            vol.Optional("screen_height"): vol.Any(str, int, float),
+            vol.Optional("viewport_width"): vol.Any(str, int, float),
+            vol.Optional("viewport_height"): vol.Any(str, int, float),
+            vol.Optional("local_locale"): str,
+        }),
+    )
     hass.data[DOMAIN][entry.entry_id] = {
         "client": client,
         "submit": submit,
