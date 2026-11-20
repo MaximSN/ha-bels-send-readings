@@ -56,6 +56,7 @@ class BelsPanel extends HTMLElement {
       this._unsubscribeState = null;
     }
     this._initialized = false;
+    this._formInitialized = false;
   }
 
   _sensorValue(entityId, rawValue) {
@@ -70,7 +71,6 @@ class BelsPanel extends HTMLElement {
   }
 
   _initializeReadingTracking() {
-    const entities = this._config?.entities || {};
     const fields = { day: "reading-day", night: "reading-night", peak: "reading-peak" };
     const now = Date.now();
     for (const [key, id] of Object.entries(fields)) {
