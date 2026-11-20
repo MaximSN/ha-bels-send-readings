@@ -135,7 +135,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         options = entry.options
         round_to = int(options.get(CONF_ROUND_TO, 50))
         readings = {
-            "day": _reading(hass, options.get(CONF_DAY_ENTITY), round_to),
+            "day": _reading(hass, options.get(CONF_DAY_ENTITY, "sensor.elektroenergiia"), round_to),
             "night": _reading(hass, options.get(CONF_NIGHT_ENTITY), round_to),
             "peak": _reading(hass, options.get(CONF_PEAK_ENTITY), round_to),
         }
