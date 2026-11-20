@@ -32,7 +32,13 @@ class BelsPanel extends HTMLElement {
       const button = this.shadowRoot.getElementById("send");
       button.disabled = true;
       try {
-        await hass.callService("bels", "submit_readings");
+        await hass.callService("bels", "submit_readings", {
+          screen_width: window.screen?.width || 0,
+          screen_height: window.screen?.height || 0,
+          viewport_width: window.innerWidth || 0,
+          viewport_height: window.innerHeight || 0,
+          local_locale: (navigator.language || "ru").split("-")[0]
+        });
       } catch (e) {
         this._showMessage("Не удалось вызвать отправку: " + e.message);
       } finally {
