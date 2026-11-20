@@ -1,14 +1,14 @@
 class BelsPanel extends HTMLElement {
   setConfig(config) {
     this.config = config || {};
-    this.attachShadow({ mode: "open" });
+    if (!this.shadowRoot) this.attachShadow({ mode: "open" });
   }
 
   set hass(hass) {
     this._hass = hass;
     if (!this.shadowRoot) return;
-    const history = hass.states["sensor.bels_история_отправок"] || Object.values(hass.states).find(s => s.attributes.friendly_name === "История отправок");
-    const last = Object.values(hass.states).find(s => s.attributes.friendly_name === "Последняя отправка");
+    const history = hass.states["sensor.bels_history"];
+    const last = hass.states["sensor.bels_last_submission"];
     const entries = history?.attributes?.entries || [];
     const lastStatus = last?.state || "unknown";
     this.shadowRoot.innerHTML = `
