@@ -56,10 +56,11 @@ class BelsPanel extends HTMLElement {
     const entities = config.entities || {};
     const roundTo = Number(config.round_to ?? 0);
     const oldValue = id => this.shadowRoot.getElementById(id)?.value;
-    const dateValue = oldValue("reading-date") || this._selectedDate;
-    const dayValue = oldValue("reading-day") ?? this._sensorValue(entities.day);
-    const nightValue = oldValue("reading-night") ?? this._sensorValue(entities.night);
-    const peakValue = oldValue("reading-peak") ?? this._sensorValue(entities.peak);
+    const preserveValues = this._formInitialized === true;
+    const dateValue = preserveValues ? (oldValue("reading-date") || this._selectedDate) : this._selectedDate;
+    const dayValue = preserveValues ? oldValue("reading-day") : this._sensorValue(entities.day);
+    const nightValue = preserveValues ? oldValue("reading-night") : this._sensorValue(entities.night);
+    const peakValue = preserveValues ? oldValue("reading-peak") : this._sensorValue(entities.peak);
     const lastStatus = entries[0]?.status;
     const statusText = lastStatus === "success" ? "Последняя отправка: успешно" :
       lastStatus === "error" ? "Последняя отправка: ошибка" : "";
@@ -91,6 +92,7 @@ class BelsPanel extends HTMLElement {
       "@media(max-width:420px){.subscriber{grid-template-columns:1fr}.reading-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}",
       "</style>"
     ].join("");
+    this._formInitialized = true;
     this.shadowRoot.getElementById("reading-date").addEventListener("change", event => {
       this._selectedDate = event.target.value || this._selectedDate;
     });
