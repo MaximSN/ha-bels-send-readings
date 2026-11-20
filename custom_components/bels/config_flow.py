@@ -19,11 +19,13 @@ class BelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
         if user_input is not None:
+            user_input[CONF_PHONE] = user_input.get(CONF_PHONE, "")
+            user_input[CONF_EMAIL] = user_input.get(CONF_EMAIL, "")
             return self.async_create_entry(title="БЭЛС — передача показаний", data=user_input)
         schema = vol.Schema({
             vol.Required(CONF_ACCOUNT): str,
-            vol.Required(CONF_PHONE): str,
-            vol.Required(CONF_EMAIL): str,
+            vol.Optional(CONF_PHONE, default=""): str,
+            vol.Optional(CONF_EMAIL, default=""): str,
         })
         return self.async_show_form(step_id="user", data_schema=schema)
 
@@ -42,7 +44,7 @@ class BelsOptionsFlow(config_entries.OptionsFlow):
 
         current = self.config_entry.options
         schema = vol.Schema({
-            vol.Required(CONF_DAY_ENTITY, default=current.get(CONF_DAY_ENTITY, "")): selector.EntitySelector(
+            vol.Required(CONF_DAY_ENTITY, default=current.get(CONF_DAY_ENTITY, "sensor.elektroenergiia")): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
             ),
             vol.Optional(CONF_NIGHT_ENTITY, default=current.get(CONF_NIGHT_ENTITY, "")): selector.EntitySelector(
