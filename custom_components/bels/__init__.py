@@ -25,7 +25,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "www" / "bels-panel.js"
 CARD_URL = "/bels/bels-panel.js"
-CARD_VERSION = "0.2.0"
+CARD_VERSION = "0.3.0"
 
 
 def _reading(hass: HomeAssistant, entity_id: str | None, round_to: int):
@@ -53,7 +53,25 @@ async def websocket_get_history(hass, connection, msg):
         if "history" in data:
             entries = data["history"].get("entries", [])
             break
-    connection.send_result(msg["id"], {"entries": entries})
+
+    config = {}
+    config_entries = hass.config_entries.async_entries(DOMAIN)
+    if config_entries:
+        entry = config_entries[0]
+        options = entry.options
+        config = {
+            "account": entry.data.get(CONF_ACCOUNT, ""),
+            "phone": entry.data.get(CONF_PHONE, ""),
+            "email": entry.data.get(CONF_EMAIL, ""),
+            "entities": {
+                "day": options.get(CONF_DAY_ENTITY, "sensor.elektroenergiia"),
+                "night": options.get(CONF_NIGHT_ENTITY, ""),
+                "peak": options.get(CONF_PEAK_ENTITY, ""),
+            },
+            "round_to": int(options.get(CONF_ROUND_TO, 50)),
+        }
+
+    connection.send_result(msg["id"], {"entries": entries, "config": config})
 
 
 async def _async_register_frontend(hass: HomeAssistant) -> None:
@@ -123,8 +141,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         }
         payload = build_payload(
             entry.data[CONF_ACCOUNT],
-            entry.data[CONF_PHONE],
-            entry.data[CONF_EMAIL],
+            entry.data.get(CONF_PHONE, ""),
+            entry.data.get(CONF_EMAIL, ""),
             readings,
             browser,
             reading_date,
