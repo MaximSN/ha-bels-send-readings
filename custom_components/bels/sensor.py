@@ -20,7 +20,7 @@ async def async_setup_entry(
 
 
 class BelsBaseSensor(CoordinatorEntity, SensorEntity):
-    _attr_has_entity_name = True
+    _attr_has_entity_name = False
 
     def __init__(self, coordinator, entry: ConfigEntry, suffix: str, name: str):
         super().__init__(coordinator)
@@ -30,7 +30,8 @@ class BelsBaseSensor(CoordinatorEntity, SensorEntity):
 
 class BelsHistorySensor(BelsBaseSensor):
     def __init__(self, coordinator, entry):
-        super().__init__(coordinator, entry, "history", "История отправок")
+        super().__init__(coordinator, entry, "history", "BELS History")
+        self.entity_id = "sensor.bels_history"
 
     @property
     def native_value(self):
@@ -43,7 +44,8 @@ class BelsHistorySensor(BelsBaseSensor):
 
 class BelsLastSubmissionSensor(BelsBaseSensor):
     def __init__(self, coordinator, entry):
-        super().__init__(coordinator, entry, "last_submission", "Последняя отправка")
+        super().__init__(coordinator, entry, "last_submission", "BELS Last Submission")
+        self.entity_id = "sensor.bels_last_submission"
 
     @property
     def native_value(self):
