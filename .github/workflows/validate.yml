@@ -15,6 +15,8 @@ jobs:
           python-version: "3.12"
       - name: Compile Python files
         run: python -m compileall -q custom_components/bels
+      - name: Validate frontend JavaScript
+        run: node --check custom_components/bels/www/bels-panel.js
       - name: Validate JSON files
         run: |
           python - <<'PY'
