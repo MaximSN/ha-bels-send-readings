@@ -63,13 +63,15 @@ class BelsOptionsFlow(config_entries.OptionsFlow):
             vol.Required(CONF_DAY_ENTITY, default=current.get(CONF_DAY_ENTITY, "sensor.elektroenergiia")): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
             ),
-            vol.Optional(
-                CONF_NIGHT_ENTITY,
-                default=current.get(CONF_NIGHT_ENTITY, ""),
+            (
+                vol.Optional(CONF_NIGHT_ENTITY, default=current[CONF_NIGHT_ENTITY])
+                if current.get(CONF_NIGHT_ENTITY)
+                else vol.Optional(CONF_NIGHT_ENTITY)
             ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
-            vol.Optional(
-                CONF_PEAK_ENTITY,
-                default=current.get(CONF_PEAK_ENTITY, ""),
+            (
+                vol.Optional(CONF_PEAK_ENTITY, default=current[CONF_PEAK_ENTITY])
+                if current.get(CONF_PEAK_ENTITY)
+                else vol.Optional(CONF_PEAK_ENTITY)
             ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
             vol.Required(CONF_ROUND_TO, default=current.get(CONF_ROUND_TO, 50)): vol.All(
                 vol.Coerce(int), vol.Range(min=0, max=1000000)
