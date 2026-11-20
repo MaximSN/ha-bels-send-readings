@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import math
+from calendar import monthrange
 from datetime import time
 from pathlib import Path
 
@@ -25,7 +26,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "www" / "bels-panel.js"
 CARD_URL = "/bels/bels-panel.js"
-CARD_VERSION = "0.4.0"
+CARD_VERSION = "0.5.0"
 
 
 def _normalize_reading(value, label: str, round_to: int, optional: bool = False):
@@ -248,7 +249,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         auto_time = time(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
 
         async def scheduled(now):
-            if now.day == auto_day:
+            scheduled_day = min(auto_day, monthrange(now.year, now.month)[1])
+            if now.day == scheduled_day:
                 try:
                     await submit("automatic")
                 except Exception:

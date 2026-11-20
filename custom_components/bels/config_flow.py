@@ -37,26 +37,50 @@ class BelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class BelsOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
         if user_input is not None:
+            account = user_input.pop(CONF_ACCOUNT)
+            phone = user_input.pop(CONF_PHONE, "")
+            email = user_input.pop(CONF_EMAIL, "")
+            self.hass.config_entries.async_update_entry(
+                self.config_entry,
+                data={
+                    **self.config_entry.data,
+                    CONF_ACCOUNT: account,
+                    CONF_PHONE: phone,
+                    CONF_EMAIL: email,
+                },
+            )
+            for entity_key in (CONF_NIGHT_ENTITY, CONF_PEAK_ENTITY):
+                if not user_input.get(entity_key):
+                    user_input.pop(entity_key, None)
             return self.async_create_entry(title="", data=user_input)
 
         current = self.config_entry.options
-        schema = vol.Schema({
+        entry_data = self.config_entry.data
+        schema = {
+            vol.Required(CONF_ACCOUNT, default=entry_data.get(CONF_ACCOUNT, "")): str,
+            vol.Optional(CONF_PHONE, default=entry_data.get(CONF_PHONE, "")): str,
+            vol.Optional(CONF_EMAIL, default=entry_data.get(CONF_EMAIL, "")): str,
             vol.Required(CONF_DAY_ENTITY, default=current.get(CONF_DAY_ENTITY, "sensor.elektroenergiia")): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
-            vol.Optional(CONF_NIGHT_ENTITY, default=current.get(CONF_NIGHT_ENTITY, "")): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
-            vol.Optional(CONF_PEAK_ENTITY, default=current.get(CONF_PEAK_ENTITY, "")): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
             ),
             vol.Required(CONF_ROUND_TO, default=current.get(CONF_ROUND_TO, 50)): vol.All(
                 vol.Coerce(int), vol.Range(min=0, max=1000000)
             ),
             vol.Required(CONF_AUTO_ENABLED, default=current.get(CONF_AUTO_ENABLED, False)): bool,
-            vol.Required(CONF_AUTO_DAY, default=current.get(CONF_AUTO_DAY, 1)): vol.All(
-                vol.Coerce(int), vol.Range(min=1, max=28)
+            vol.Required(CONF_AUTO_DAY, default=current.get(CONF_AUTO_DAY, 1)): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1, max=31, step=1, mode=selector.NumberSelectorMode.BOX
+                )
             ),
             vol.Required(CONF_AUTO_TIME, default=current.get(CONF_AUTO_TIME, "09:00:00")): selector.TimeSelector(),
-        })
-        return self.async_show_form(step_id="init", data_schema=schema)
+        }
+        for entity_key in (CONF_NIGHT_ENTITY, CONF_PEAK_ENTITY):
+            entity_schema_key = (
+                vol.Optional(entity_key, default=current[entity_key])
+                if current.get(entity_key)
+                else vol.Optional(entity_key)
+            )
+            schema[entity_schema_key] = selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            )
+        return self.async_show_form(step_id="init", data_schema=vol.Schema(schema))
