@@ -2,8 +2,6 @@
 
 Интеграция Home Assistant для передачи показаний электросчётчика в БЭЛС.
 
-> Проект находится в начальной разработке. До выпуска стабильной версии используйте тестовый экземпляр Home Assistant и проверяйте отправляемые данные.
-
 ## Возможности
 
 - Настройка лицевого счёта, телефона и e-mail через интерфейс Home Assistant.
@@ -12,25 +10,39 @@
 - Отправка показаний в API БЭЛС через multipart-поле `json`.
 - Хранение cookie-сессии в памяти процесса; cookie не записываются в файлы и не публикуются.
 - История отправок в хранилище Home Assistant.
-- Датчики состояния и результата отправки.
 - Lovelace-карточка для ручной отправки и просмотра истории.
+- Автоматическая регистрация JavaScript-ресурса карточки в Lovelace при использовании режима Storage.
 
 ## Установка
 
-На текущем этапе установите репозиторий как custom integration через HACS (Custom repositories, category Integration) либо скопируйте `custom_components/bels` в каталог `config/custom_components/bels`.
+Установите репозиторий как custom integration через HACS (Custom repositories, category Integration) либо скопируйте `custom_components/bels` в каталог `config/custom_components/bels`.
 
 После установки перезапустите Home Assistant и добавьте интеграцию **БЭЛС — передача показаний** через Settings → Devices & services → Add integration.
 
-Frontend-карточка находится в `www/bels-panel.js`. Добавьте ресурс Lovelace:
+После загрузки интеграции ресурс карточки регистрируется автоматически, если Lovelace использует режим Storage. Если используется YAML-режим ресурсов, добавьте в раздел `lovelace:` файл ресурсов вручную:
 
-- URL: `/bels/bels-panel.js`
-- Resource type: JavaScript module
+```yaml
+lovelace:
+  resources:
+    - url: /bels/bels-panel.js
+      type: module
+```
 
-Если ресурсный URL недоступен в вашей версии Home Assistant, скопируйте файл в `config/www/bels/bels-panel.js` и используйте `/local/bels/bels-panel.js`.
+Добавьте карточку на панель в режиме YAML:
+
+```yaml
+type: custom:bels-panel
+```
 
 ## Настройка
 
 Укажите лицевой счёт, телефон, e-mail и сущности показаний. Ночная и пиковая сущности необязательны. Установите `round_to` в нужную кратность; значение `0` отключает округление.
+
+## История
+
+История отправок хранится в Store Home Assistant и доступна карточке напрямую через WebSocket API интеграции. Отдельные сущности `sensor.bels_history` и `sensor.bels_last_submission` больше не создаются.
+
+При обновлении с версии 0.1.0 история из прежнего хранилища сохраняется.
 
 ## Безопасность
 
