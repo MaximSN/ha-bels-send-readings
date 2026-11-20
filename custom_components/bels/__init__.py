@@ -60,13 +60,24 @@ def _reading(hass: HomeAssistant, entity_id: str | None, round_to: int, label: s
 @websocket_api.async_response
 async def websocket_get_history(hass, connection, msg):
     entries = []
-    for data in hass.data.get(DOMAIN, {}).values():
-        if "history" in data:
-            entries = data["history"].get("entries", [])
-            break
-
     config = {}
     config_entries = hass.config_entries.async_entries(DOMAIN)
+    domain_data = hass.data.get(DOMAIN, {})
+
+    for entry in config_entries:
+        data = domain_data.get(entry.entry_id)
+        if data and "history" in data:
+            entries = data["history"].get("entries", [])
+        else:
+            store = Store(
+                hass, STORAGE_VERSION, f"{DOMAIN}_{entry.entry_id}_history"
+            )
+            stored_history = await store.async_load()
+            if stored_history:
+                entries = stored_history.get("entries", [])
+        if entries:
+            break
+
     if config_entries:
         entry = config_entries[0]
         options = entry.options
