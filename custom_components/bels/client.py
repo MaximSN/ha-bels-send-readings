@@ -83,7 +83,7 @@ def build_payload(
 def interpret_response(data: dict, http_status: int) -> tuple[str, str]:
     answer = data.get("answer") if isinstance(data, dict) else None
     if 200 <= http_status < 300 and isinstance(answer, dict) and answer.get("result") is True:
-        return "success", "Показания успешно приняты"
+        return "success", ""
 
     comments: list[str] = []
     wrong = answer.get("wrong") if isinstance(answer, dict) else None

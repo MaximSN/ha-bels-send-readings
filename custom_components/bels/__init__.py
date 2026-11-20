@@ -26,7 +26,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "www" / "bels-panel.js"
 CARD_URL = "/bels/bels-panel.js"
-CARD_VERSION = "0.5.0"
+CARD_VERSION = "0.6.0"
 
 
 def _normalize_reading(value, label: str, round_to: int, optional: bool = False):
@@ -196,7 +196,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "source_label": "Автоматически" if source == "automatic" else "Вручную",
             "status": status,
             "status_label": "Успешно" if status == "success" else "Ошибка",
-            "comment": comment,
+            "comment": comment if status == "error" else "",
             "http_status": http_status,
             "form": payload,
             "response": response,
