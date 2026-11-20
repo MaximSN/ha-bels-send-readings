@@ -1,5 +1,4 @@
 DOMAIN = "bels"
-PLATFORMS = ["sensor"]
 API_URL = "https://www.belssb.ru/sysapi/formy/sysapi/v2/public/submit/657"
 SITE_URL = "https://www.belssb.ru/individuals/pokaz/"
 STORAGE_VERSION = 1
