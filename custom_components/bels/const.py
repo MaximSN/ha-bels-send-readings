@@ -1,0 +1,16 @@
+DOMAIN = "bels"
+PLATFORMS = ["sensor"]
+API_URL = "https://www.belssb.ru/sysapi/formy/sysapi/v2/public/submit/657"
+SITE_URL = "https://www.belssb.ru/individuals/pokaz/"
+STORAGE_VERSION = 1
+HISTORY_LIMIT = 100
+CONF_ACCOUNT = "account"
+CONF_PHONE = "phone"
+CONF_EMAIL = "email"
+CONF_DAY_ENTITY = "day_entity"
+CONF_NIGHT_ENTITY = "night_entity"
+CONF_PEAK_ENTITY = "peak_entity"
+CONF_ROUND_TO = "round_to"
+CONF_AUTO_ENABLED = "auto_enabled"
+CONF_AUTO_DAY = "auto_day"
+CONF_AUTO_TIME = "auto_time"
