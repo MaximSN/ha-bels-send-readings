@@ -12,25 +12,38 @@ class BelsPanel extends HTMLElement {
         timeZone: "Europe/Moscow", year: "numeric", month: "2-digit", day: "2-digit"
       }).format(new Date());
     }
-    if (!this._initialized) {
-      this._initialized = true;
-      hass.callWS({ type: "bels/history" }).then(result => {
-        this._entries = result.entries || [];
-        this._config = result.config || {};
-        this._configLoaded = true;
-        this._render();
-      }).catch(error => {
-        this._loadError = error.message;
-        this._render();
-      });
-      hass.connection.subscribeEvents(event => {
-        this._entries = event.data.entries || [];
-        this._render();
-      }, "bels_submission_finished").then(unsubscribe => {
-        this._unsubscribe = unsubscribe;
-      });
-    }
-    this._render();
+    if (this._initialized) return;
+    this._initialized = true;
+    this._readingFieldUpdatedAt = {};
+    hass.connection.subscribeEvents(event => {
+      this._handleStateChanged(event);
+    }, "state_changed").then(unsubscribe => {
+      if (this.isConnected) this._unsubscribeState = unsubscribe;
+      else unsubscribe();
+    });
+    hass.callWS({ type: "bels/history" }).then(result => {
+      this._entries = result.entries || [];
+      this._config = result.config || {};
+      this._configLoaded = true;
+      this._render();
+      this._initializeReadingTracking();
+    }).catch(error => {
+      this._loadError = error.message;
+      this._render();
+    });
+    hass.connection.subscribeEvents(event => {
+      this._entries = event.data.entries || [];
+      if (this._historyVisible) {
+        const target = this.shadowRoot.getElementById("details");
+        if (target) {
+          target.innerHTML = this._historyHtml(this._entries);
+          this._bindHistoryActions(this._entries);
+        }
+      }
+    }, "bels_submission_finished").then(unsubscribe => {
+      if (this.isConnected) this._unsubscribe = unsubscribe;
+      else unsubscribe();
+    });
   }
 
   disconnectedCallback() {
@@ -38,16 +51,60 @@ class BelsPanel extends HTMLElement {
       this._unsubscribe();
       this._unsubscribe = null;
     }
+    if (this._unsubscribeState) {
+      this._unsubscribeState();
+      this._unsubscribeState = null;
+    }
     this._initialized = false;
+    this._formInitialized = false;
   }
 
-  _sensorValue(entityId) {
-    if (!entityId || !this._hass.states[entityId]) return "";
-    const value = Number(this._hass.states[entityId].state);
+  _sensorValue(entityId, rawValue) {
+    if (!entityId) return "";
+    const state = rawValue === undefined ? this._hass.states[entityId]?.state : rawValue;
+    if (state === undefined || state === null) return "";
+    const value = Number(state);
     if (!Number.isFinite(value)) return "";
     const roundTo = Number(this._config.round_to ?? 50);
     const rounded = roundTo > 0 ? Math.ceil(value / roundTo) * roundTo : value;
     return String(rounded);
+  }
+
+  _initializeReadingTracking() {
+    const fields = { day: "reading-day", night: "reading-night", peak: "reading-peak" };
+    const now = Date.now();
+    for (const [key, id] of Object.entries(fields)) {
+      const input = this.shadowRoot.getElementById(id);
+      if (!input) continue;
+      this._readingFieldUpdatedAt[key] = now;
+      input.addEventListener("input", () => {
+        this._readingFieldUpdatedAt[key] = Date.now();
+      });
+    }
+  }
+
+  _handleStateChanged(event) {
+    const data = event?.data || {};
+    const entityId = data.entity_id;
+    const newState = data.new_state;
+    if (!entityId || !newState || !this._configLoaded) return;
+    const entities = this._config?.entities || {};
+    const fields = {
+      [entities.day]: ["day", "reading-day"],
+      [entities.night]: ["night", "reading-night"],
+      [entities.peak]: ["peak", "reading-peak"]
+    };
+    const field = fields[entityId];
+    if (!field) return;
+    const [key, inputId] = field;
+    const lastChanged = new Date(newState.last_changed).getTime();
+    const savedAt = this._readingFieldUpdatedAt?.[key] || 0;
+    if (!Number.isFinite(lastChanged) || lastChanged <= savedAt) return;
+    const input = this.shadowRoot.getElementById(inputId);
+    if (!input) return;
+    const nextValue = this._sensorValue(entityId, newState.state);
+    if (input.value !== nextValue) input.value = nextValue;
+    this._readingFieldUpdatedAt[key] = Date.now();
   }
 
   _render() {
@@ -89,7 +146,7 @@ class BelsPanel extends HTMLElement {
       "fieldset{border:1px solid var(--divider-color);border-radius:8px;padding:14px;margin:0 0 16px}legend{padding:0 6px;font-weight:600}.reading-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}.field{min-width:0;display:flex;flex-direction:column;gap:6px}label{font-size:14px}.required{color:var(--error-color)}",
       "input{box-sizing:border-box;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit}.hint{margin-top:12px;font-size:12px;color:var(--secondary-text-color)}",
       ".actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{appearance:none;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;padding:9px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;background:var(--card-background-color);color:var(--primary-text-color)}.actions button.primary{background:var(--primary-color);border-color:var(--primary-color);color:var(--text-primary-color,#fff)}.actions button:disabled{opacity:.6;cursor:default}#details{margin-top:16px;overflow:auto}",
-      "table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:7px;border-bottom:1px solid var(--divider-color);vertical-align:top}.error{color:var(--error-color)}.success{color:var(--success-color)}.data-button,.data-window button{appearance:none;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;padding:6px 10px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit;cursor:pointer}.data-window{position:fixed;z-index:10;top:10%;right:5%;width:min(680px,90vw);max-height:80vh;display:flex;flex-direction:column;background:var(--card-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:12px}.data-window-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px}.data-window-header>div{display:flex;gap:8px}.data-window .close-data{font-size:20px;line-height:1;padding:4px 9px}.data-content{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;margin:0;padding:12px;background:var(--secondary-background-color);border-radius:6px;font-size:12px;}",
+      "table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:7px;border-bottom:1px solid var(--divider-color);vertical-align:top}.error{color:var(--error-color)}.success{color:var(--success-color)}.data-button,.data-window button{appearance:none;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;padding:6px 10px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit;cursor:pointer}.data-window{position:fixed;z-index:10;top:10%;right:5%;width:min(680px,90vw);max-height:80vh;display:flex;flex-direction:column;background:var(--card-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:12px}.data-window-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;cursor:move;user-select:none;touch-action:none}.data-window-header>div{display:flex;gap:8px}.data-window .close-data{font-size:20px;line-height:1;padding:4px 9px}.data-content{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;margin:0;padding:12px;background:var(--secondary-background-color);border-radius:6px;font-size:12px;}",
       "@media(max-width:420px){.subscriber{grid-template-columns:1fr}.reading-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}",
       "</style>"
     ].join("");
@@ -182,8 +239,33 @@ class BelsPanel extends HTMLElement {
     const windowElement = document.createElement("section");
     windowElement.id = "data-window";
     windowElement.className = "data-window";
+    windowElement.setAttribute("role", "region");
+    windowElement.setAttribute("aria-label", "Данные отправки");
     windowElement.innerHTML = "<div class='data-window-header'><strong>Данные отправки</strong><div><button class='copy-data'>Скопировать</button><button class='close-data' aria-label='Закрыть'>×</button></div></div><pre class='data-content'></pre>";
     windowElement.querySelector(".data-content").textContent = data;
+    const header = windowElement.querySelector(".data-window-header");
+    header.addEventListener("pointerdown", event => {
+      if (event.target.closest("button")) return;
+      const rect = windowElement.getBoundingClientRect();
+      const offsetX = event.clientX - rect.left;
+      const offsetY = event.clientY - rect.top;
+      header.setPointerCapture(event.pointerId);
+      const move = moveEvent => {
+        const left = Math.max(0, Math.min(window.innerWidth - rect.width, moveEvent.clientX - offsetX));
+        const top = Math.max(0, Math.min(window.innerHeight - 48, moveEvent.clientY - offsetY));
+        windowElement.style.left = left + "px";
+        windowElement.style.top = top + "px";
+        windowElement.style.right = "auto";
+      };
+      const stop = () => {
+        header.removeEventListener("pointermove", move);
+        header.removeEventListener("pointerup", stop);
+        header.removeEventListener("pointercancel", stop);
+      };
+      header.addEventListener("pointermove", move);
+      header.addEventListener("pointerup", stop);
+      header.addEventListener("pointercancel", stop);
+    });
     windowElement.querySelector(".close-data").addEventListener("click", () => windowElement.remove());
     windowElement.querySelector(".copy-data").addEventListener("click", async event => {
       const button = event.currentTarget;
