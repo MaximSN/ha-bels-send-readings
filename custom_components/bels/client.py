@@ -40,23 +40,39 @@ def build_payload(
     phone: str,
     email: str,
     readings: dict[str, int | float | None],
+    browser: dict | None = None,
 ) -> dict:
-    payload = {
+    browser = browser or {}
+    data = {
         "pattern-licevoy-schet": account,
         "date-data": datetime.now(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y"),
+        "pattern-pokazaniya-obshchie-den": "" if readings.get("day") is None else str(readings["day"]),
+        "pattern-pokazaniya-noch": "" if readings.get("night") is None else str(readings["night"]),
+        "pattern-pokazaniya-pik": "" if readings.get("peak") is None else str(readings["peak"]),
         "email-emayl": email,
         "phone-telefon": phone,
+        "location_hostname": "www.belssb.ru",
+        "location_port": "",
+        "location_protocol": "https",
+        "location_pathname": "/individuals/pokaz/",
+        "location_search": "",
+        "location_hash": "",
+        "screen_width": int(browser.get("screen_width") or 0),
+        "screen_height": int(browser.get("screen_height") or 0),
+        "form_lang": "ru",
+        "local_locale": str(browser.get("local_locale") or "ru"),
+        "local_timezone": "Europe/Moscow",
+        "viewport_width": float(browser.get("viewport_width") or 0),
+        "viewport_height": float(browser.get("viewport_height") or 0),
     }
-    field_map = {
-        "day": "pattern-pokazaniya-obshchie-den",
-        "night": "pattern-pokazaniya-noch",
-        "peak": "pattern-pokazaniya-pik",
+    return {
+        "data": data,
+        "force_type": "",
+        "main_page": 0,
+        "popup_page": 0,
+        "lang": "ru",
+        "popup_showed": False,
     }
-    for tariff, field in field_map.items():
-        value = readings.get(tariff)
-        if value is not None:
-            payload[field] = str(value)
-    return payload
 
 
 def interpret_response(data: dict, http_status: int) -> tuple[str, str]:
