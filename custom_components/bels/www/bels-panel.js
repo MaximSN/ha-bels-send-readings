@@ -89,7 +89,7 @@ class BelsPanel extends HTMLElement {
       "fieldset{border:1px solid var(--divider-color);border-radius:8px;padding:14px;margin:0 0 16px}legend{padding:0 6px;font-weight:600}.reading-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}.field{min-width:0;display:flex;flex-direction:column;gap:6px}label{font-size:14px}.required{color:var(--error-color)}",
       "input{box-sizing:border-box;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit}.hint{margin-top:12px;font-size:12px;color:var(--secondary-text-color)}",
       ".actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{appearance:none;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;padding:9px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;background:var(--card-background-color);color:var(--primary-text-color)}.actions button.primary{background:var(--primary-color);border-color:var(--primary-color);color:var(--text-primary-color,#fff)}.actions button:disabled{opacity:.6;cursor:default}#details{margin-top:16px;overflow:auto}",
-      "table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:7px;border-bottom:1px solid var(--divider-color);vertical-align:top}.error{color:var(--error-color)}.success{color:var(--success-color)}",
+      "table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:7px;border-bottom:1px solid var(--divider-color);vertical-align:top}.error{color:var(--error-color)}.success{color:var(--success-color)}.data-button,.data-window button{appearance:none;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;padding:6px 10px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit;cursor:pointer}.data-window{position:fixed;z-index:10;top:10%;right:5%;width:min(680px,90vw);max-height:80vh;display:flex;flex-direction:column;background:var(--card-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:12px}.data-window-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px}.data-window-header>div{display:flex;gap:8px}.data-window .close-data{font-size:20px;line-height:1;padding:4px 9px}.data-content{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;margin:0;padding:12px;background:var(--secondary-background-color);border-radius:6px;font-size:12px;}
       "@media(max-width:420px){.subscriber{grid-template-columns:1fr}.reading-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}",
       "</style>"
     ].join("");
@@ -144,21 +144,66 @@ class BelsPanel extends HTMLElement {
       this._historyVisible = !this._historyVisible;
       const target = this.shadowRoot.getElementById("details");
       target.hidden = !this._historyVisible;
-      if (this._historyVisible) target.innerHTML = this._historyHtml(entries);
+      if (this._historyVisible) { target.innerHTML = this._historyHtml(entries); this._bindHistoryActions(entries); }
     });
     if (this._historyVisible) {
       this.shadowRoot.getElementById("details").innerHTML = this._historyHtml(entries);
+      this._bindHistoryActions(entries);
     }
+  }
+
+  _formatTimestamp(value) {
+    const match = String(value || "").match(/^(\\d{4}-\\d{2}-\\d{2})T(\\d{2}:\\d{2}:\\d{2})/);
+    return match ? match[1] + " " + match[2] : String(value || "");
   }
 
   _historyHtml(entries) {
     if (!entries.length) return "<p>История пока пуста.</p>";
     return "<table><thead><tr><th>Дата</th><th>Источник</th><th>Статус</th><th>Комментарий</th><th>Данные</th></tr></thead><tbody>" +
-      entries.map(item => "<tr><td>" + this._escape(item.timestamp || "") + "</td><td>" + this._escape(item.source_label || item.source || "") +
+      entries.map((item, index) => "<tr><td>" + this._escape(this._formatTimestamp(item.timestamp)) + "</td><td>" + this._escape(item.source_label || item.source || "") +
       "</td><td class='" + (item.status === "success" ? "success" : "error") + "'>" + this._escape(item.status_label || item.status || "") +
-      "</td><td>" + this._escape(item.comment || "") + "</td><td><details><summary>Показать</summary><pre>" +
-      this._escape(JSON.stringify({form:item.form,response:item.response,http_status:item.http_status}, null, 2)) +
-      "</pre></details></td></tr>").join("") + "</tbody></table>";
+      "</td><td>" + this._escape(item.comment || "") + "</td><td><button class='data-button' data-index='" + index + "'>Показать</button></td></tr>").join("") +
+      "</tbody></table>";
+  }
+
+  _bindHistoryActions(entries) {
+    this.shadowRoot.querySelectorAll(".data-button").forEach(button => {
+      button.addEventListener("click", () => this._openDataWindow(entries[Number(button.dataset.index)]));
+    });
+  }
+
+  _openDataWindow(item) {
+    this.shadowRoot.getElementById("data-window")?.remove();
+    const data = JSON.stringify({
+      form: item.form,
+      response: item.response,
+      http_status: item.http_status
+    }, null, 2);
+    const windowElement = document.createElement("section");
+    windowElement.id = "data-window";
+    windowElement.className = "data-window";
+    windowElement.innerHTML = "<div class='data-window-header'><strong>Данные отправки</strong><div><button class='copy-data'>Скопировать</button><button class='close-data' aria-label='Закрыть'>×</button></div></div><pre class='data-content'></pre>";
+    windowElement.querySelector(".data-content").textContent = data;
+    windowElement.querySelector(".close-data").addEventListener("click", () => windowElement.remove());
+    windowElement.querySelector(".copy-data").addEventListener("click", async event => {
+      const button = event.currentTarget;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(data);
+        } else {
+          const area = document.createElement("textarea");
+          area.value = data;
+          windowElement.appendChild(area);
+          area.select();
+          document.execCommand("copy");
+          area.remove();
+        }
+        button.textContent = "Скопировано";
+      } catch (error) {
+        button.textContent = "Не удалось скопировать";
+      }
+    });
+    this.shadowRoot.appendChild(windowElement);
   }
 
   _showMessage(message) {
