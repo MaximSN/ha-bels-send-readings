@@ -27,6 +27,10 @@ class BelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         })
         return self.async_show_form(step_id="user", data_schema=schema)
 
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        return BelsOptionsFlow(config_entry)
+
 
 class BelsOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry):
@@ -57,7 +61,3 @@ class BelsOptionsFlow(config_entries.OptionsFlow):
             vol.Required(CONF_AUTO_TIME, default=current.get(CONF_AUTO_TIME, "09:00:00")): selector.TimeSelector(),
         })
         return self.async_show_form(step_id="init", data_schema=schema)
-
-
-async def async_get_options_flow(config_entry):
-    return BelsOptionsFlow(config_entry)
