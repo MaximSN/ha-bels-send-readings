@@ -103,6 +103,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    await _async_register_frontend(hass)
     session = async_get_clientsession(hass)
     client = BelsClient(session)
     store = Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry.entry_id}_history")
