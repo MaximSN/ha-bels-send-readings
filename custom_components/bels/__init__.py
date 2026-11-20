@@ -63,7 +63,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     await coordinator.async_config_entry_first_refresh()
 
-    async def submit(source: str = "manual", browser: dict | None = None):
+    async def submit(
+        source: str = "manual",
+        browser: dict | None = None,
+        reading_date: str | None = None,
+    ):
         options = entry.options
         round_to = int(options.get(CONF_ROUND_TO, 50))
         readings = {
@@ -72,7 +76,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "peak": _reading(hass, options.get(CONF_PEAK_ENTITY), round_to),
         }
         payload = build_payload(
-            entry.data[CONF_ACCOUNT], entry.data[CONF_PHONE], entry.data[CONF_EMAIL], readings, browser
+            entry.data[CONF_ACCOUNT],
+            entry.data[CONF_PHONE],
+            entry.data[CONF_EMAIL],
+            readings,
+            browser,
+            reading_date,
         )
         try:
             response, http_status = await client.submit(payload)
@@ -105,7 +114,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return item
 
     async def handle_submit(call: ServiceCall):
-        item = await submit("manual", dict(call.data))
+        browser = dict(call.data)
+        reading_date = browser.pop("date", None)
+        item = await submit("manual", browser, reading_date)
         hass.bus.async_fire(f"{DOMAIN}_submission_finished", item)
 
     hass.services.async_register(DOMAIN, "submit_readings", handle_submit)
