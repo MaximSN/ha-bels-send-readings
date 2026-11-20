@@ -54,31 +54,41 @@ class BelsPanel extends HTMLElement {
     const entries = this._entries || [];
     const config = this._config || {};
     const entities = config.entities || {};
-    const lastStatus = entries[0]?.status || "unknown";
+    const roundTo = Number(config.round_to ?? 0);
+    const oldValue = id => this.shadowRoot.getElementById(id)?.value;
+    const dateValue = oldValue("reading-date") || this._selectedDate;
+    const dayValue = oldValue("reading-day") ?? this._sensorValue(entities.day);
+    const nightValue = oldValue("reading-night") ?? this._sensorValue(entities.night);
+    const peakValue = oldValue("reading-peak") ?? this._sensorValue(entities.peak);
+    const lastStatus = entries[0]?.status;
     const statusText = lastStatus === "success" ? "Последняя отправка: успешно" :
-      lastStatus === "error" ? "Последняя отправка: ошибка" : "Пока нет отправок";
-    const day = this._sensorValue(entities.day);
-    const night = this._sensorValue(entities.night);
-    const peak = this._sensorValue(entities.peak);
-    const contacts = [config.phone, config.email].filter(Boolean);
-    const contactHtml = contacts.map(value => "<div class='contact'>" + this._escape(value) + "</div>").join("");
+      lastStatus === "error" ? "Последняя отправка: ошибка" : "";
+    const account = this._escape(config.account || "—");
+    const phone = this._escape(config.phone || "—");
+    const email = this._escape(config.email || "—");
+    const roundingHint = roundTo > 0
+      ? "<div class='hint'>Показания округлены вверх до ближайшего кратного " + this._escape(roundTo) + "</div>"
+      : "";
     this.shadowRoot.innerHTML = [
       "<ha-card header='БЭЛС — передача показаний'><div class='content'>",
-      "<div class='subscriber'><div><span class='caption'>Лицевой счёт</span><strong>" + this._escape(config.account || "—") + "</strong></div>" + contactHtml + "</div>",
-      "<div class='status'>" + this._escape(this._loadError || statusText) + "</div>",
+      "<div class='subscriber'><div><span class='caption'>Лицевой счёт</span><strong>" + account + "</strong></div><div><span class='caption'>Телефон</span><strong>" + phone + "</strong></div><div><span class='caption'>E-mail</span><strong>" + email + "</strong></div></div>",
+      this._loadError || statusText ? "<div class='status'>" + this._escape(this._loadError || statusText) + "</div>" : "",
       "<fieldset><legend>Показания</legend>",
-      "<div class='field'><label for='reading-date'>Дата <span class='required'>*</span></label><input id='reading-date' type='date' required value='" + this._escape(this._selectedDate) + "'></div>",
-      "<div class='field'><label for='reading-day'>Общие (день) <span class='required'>*</span></label><input id='reading-day' type='number' step='any' readonly required value='" + this._escape(day) + "'></div>",
-      "<div class='tariffs'><div class='field'><label for='reading-night'>Ночь</label><input id='reading-night' type='number' step='any' readonly value='" + this._escape(night) + "'></div>",
-      "<div class='field'><label for='reading-peak'>Пик</label><input id='reading-peak' type='number' step='any' readonly value='" + this._escape(peak) + "'></div></div></fieldset>",
-      "<div class='actions'><mwc-button raised id='send'>Отправить показания</mwc-button><mwc-button id='history'>История отправок (" + entries.length + ")</mwc-button></div>",
+      "<div class='reading-grid'>",
+      "<div class='field'><label for='reading-date'>Дата <span class='required'>*</span></label><input id='reading-date' type='date' required value='" + this._escape(dateValue) + "'></div>",
+      "<div class='field'><label for='reading-day'>Общие (день) <span class='required'>*</span></label><input id='reading-day' type='number' step='any' required value='" + this._escape(dayValue) + "'></div>",
+      "<div class='field'><label for='reading-night'>Ночь</label><input id='reading-night' type='number' step='any' value='" + this._escape(nightValue) + "'></div>",
+      "<div class='field'><label for='reading-peak'>Пик</label><input id='reading-peak' type='number' step='any' value='" + this._escape(peakValue) + "'></div>",
+      "</div>" + roundingHint + "</fieldset>",
+      "<div class='actions'><button id='send' class='primary'>Отправить показания</button><button id='history' class='secondary'>История отправок</button></div>",
       "<div id='details' " + (this._historyVisible ? "" : "hidden") + "></div></div></ha-card>",
       "<style>",
-      ".content{padding:16px}.subscriber{display:flex;flex-wrap:wrap;gap:8px 22px;margin-bottom:16px}.subscriber>div{display:flex;flex-direction:column;gap:3px}.caption{font-size:12px;color:var(--secondary-text-color)}.contact{align-self:end;color:var(--secondary-text-color)}.status{margin-bottom:14px}",
-      "fieldset{border:1px solid var(--divider-color);border-radius:8px;padding:14px;margin:0 0 16px}legend{padding:0 6px;font-weight:600}.field{min-width:0;display:flex;flex-direction:column;gap:6px}label{font-size:14px}.required{color:var(--error-color)}",
-      "input{box-sizing:border-box;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit}input[readonly]{background:var(--secondary-background-color);opacity:1}",
-      "fieldset>.field{margin-bottom:14px}.tariffs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.actions{display:flex;gap:8px;flex-wrap:wrap}#details{margin-top:16px;overflow:auto}",
+      ".content{padding:16px}.subscriber{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px;padding:12px;border:1px solid var(--divider-color);border-radius:8px}.subscriber>div{display:flex;flex-direction:column;gap:4px;min-width:0;overflow-wrap:anywhere}.caption{font-size:12px;color:var(--secondary-text-color)}.subscriber strong{font-size:14px;font-weight:500}.status{margin-bottom:14px;color:var(--secondary-text-color)}",
+      "fieldset{border:1px solid var(--divider-color);border-radius:8px;padding:14px;margin:0 0 16px}legend{padding:0 6px;font-weight:600}.reading-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}.field{min-width:0;display:flex;flex-direction:column;gap:6px}label{font-size:14px}.required{color:var(--error-color)}",
+      "input{box-sizing:border-box;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit}.hint{margin-top:12px;font-size:12px;color:var(--secondary-text-color)}",
+      ".actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{appearance:none;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;padding:9px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;background:var(--card-background-color);color:var(--primary-text-color)}.actions button.primary{background:var(--primary-color);border-color:var(--primary-color);color:var(--text-primary-color,#fff)}.actions button:disabled{opacity:.6;cursor:default}#details{margin-top:16px;overflow:auto}",
       "table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:7px;border-bottom:1px solid var(--divider-color);vertical-align:top}.error{color:var(--error-color)}.success{color:var(--success-color)}",
+      "@media(max-width:420px){.subscriber{grid-template-columns:1fr}.reading-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}",
       "</style>"
     ].join("");
     this.shadowRoot.getElementById("reading-date").addEventListener("change", event => {
@@ -87,19 +97,34 @@ class BelsPanel extends HTMLElement {
     this.shadowRoot.getElementById("send").addEventListener("click", async () => {
       const button = this.shadowRoot.getElementById("send");
       const dateInput = this.shadowRoot.getElementById("reading-date");
+      const dayInput = this.shadowRoot.getElementById("reading-day");
+      const nightInput = this.shadowRoot.getElementById("reading-night");
+      const peakInput = this.shadowRoot.getElementById("reading-peak");
+      const day = dayInput.value.trim();
       if (!dateInput.value) {
         this._showMessage("Выберите дату показаний.");
         return;
       }
-      if (!day) {
-        this._showMessage("Не удалось получить числовое значение сенсора «Общие (день)». Проверьте его в настройках интеграции.");
+      if (!day || !Number.isFinite(Number(day))) {
+        this._showMessage("Укажите числовое значение «Общие (день)».");
+        dayInput.focus();
         return;
+      }
+      for (const [label, input] of [["Ночь", nightInput], ["Пик", peakInput]]) {
+        if (input.value.trim() && !Number.isFinite(Number(input.value))) {
+          this._showMessage("Показание «" + label + "» должно быть числом.");
+          input.focus();
+          return;
+        }
       }
       this._selectedDate = dateInput.value;
       button.disabled = true;
       try {
         await this._hass.callService("bels", "submit_readings", {
           date: dateInput.value,
+          day,
+          night: nightInput.value.trim(),
+          peak: peakInput.value.trim(),
           screen_width: window.screen?.width || 0,
           screen_height: window.screen?.height || 0,
           viewport_width: window.innerWidth || 0,
@@ -140,7 +165,7 @@ class BelsPanel extends HTMLElement {
   }
 
   _escape(value) {
-    return String(value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+    return String(value).replace(/[&<>\"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   }
 
   getCardSize() { return 5; }
