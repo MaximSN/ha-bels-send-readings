@@ -167,7 +167,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             overrides = overrides or {}
             readings = {}
             fields = (
-                ("day", CONF_DAY_ENTITY, "Общие (день)", False),
+                ("day", CONF_DAY_ENTITY, "День", False),
                 ("night", CONF_NIGHT_ENTITY, "Ночь", True),
                 ("peak", CONF_PEAK_ENTITY, "Пик", True),
             )
