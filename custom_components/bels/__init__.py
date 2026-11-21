@@ -26,7 +26,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "www" / "bels-panel.js"
 CARD_URL = "/bels/bels-panel.js"
-CARD_VERSION = "0.6.2.3"
+CARD_VERSION = "0.6.2.4"
 
 
 def _normalize_reading(value, label: str, round_to: int, optional: bool = False):
