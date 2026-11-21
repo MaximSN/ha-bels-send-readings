@@ -26,7 +26,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "www" / "bels-panel.js"
 CARD_URL = "/bels/bels-panel.js"
-CARD_VERSION = "0.6.1"
+CARD_VERSION = "0.6.2.6"
 
 
 def _normalize_reading(value, label: str, round_to: int, optional: bool = False):
@@ -91,6 +91,9 @@ async def websocket_get_history(hass, connection, msg):
                 "peak": options.get(CONF_PEAK_ENTITY, ""),
             },
             "round_to": int(options.get(CONF_ROUND_TO, 50)),
+            "auto_enabled": bool(options.get(CONF_AUTO_ENABLED, False)),
+            "auto_day": int(options.get(CONF_AUTO_DAY, 1)),
+            "auto_time": str(options.get(CONF_AUTO_TIME, "09:00:00")),
         }
 
     connection.send_result(msg["id"], {"entries": entries, "config": config})
@@ -164,7 +167,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             overrides = overrides or {}
             readings = {}
             fields = (
-                ("day", CONF_DAY_ENTITY, "Общие (день)", False),
+                ("day", CONF_DAY_ENTITY, "День", False),
                 ("night", CONF_NIGHT_ENTITY, "Ночь", True),
                 ("peak", CONF_PEAK_ENTITY, "Пик", True),
             )
@@ -217,7 +220,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await store.async_save(history)
         hass.bus.async_fire(
             f"{DOMAIN}_submission_finished",
-            {"entries": history["entries"]},
+            {"entries": history["entries"], "item": item},
         )
         return item
 

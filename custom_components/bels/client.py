@@ -81,20 +81,39 @@ def build_payload(
 
 
 def interpret_response(data: dict, http_status: int) -> tuple[str, str]:
-    answer = data.get("answer") if isinstance(data, dict) else None
+    envelope = data.get("response") if isinstance(data, dict) else None
+    if not isinstance(envelope, dict):
+        envelope = data if isinstance(data, dict) else {}
+    answer = envelope.get("answer")
     if 200 <= http_status < 300 and isinstance(answer, dict) and answer.get("result") is True:
         return "success", ""
 
     comments: list[str] = []
     wrong = answer.get("wrong") if isinstance(answer, dict) else None
     labels = {
+        "pattern-licevoy-schet": "Неправильно указан лицевой счёт",
+        "date-data": "Неправильно указана дата показаний",
+        "pattern-pokazaniya-obshchie-den": "Неправильно указано показание «День»",
+        "pattern-pokazaniya-noch": "Неправильно указано показание «Ночь»",
+        "pattern-pokazaniya-pik": "Неправильно указано показание «Пик»",
         "email-emayl": "Неправильно указан e-mail",
         "phone-telefon": "Неправильно указан телефон",
     }
     if isinstance(wrong, dict):
         for key, value in wrong.items():
-            comments.append(labels.get(key, f"{key}: {value}"))
-    errors = data.get("errors") if isinstance(data, dict) else None
+            detail = value if isinstance(value, str) and value.strip() else ""
+            comments.append(labels.get(key, f"{key}: {detail}" if detail else str(key)))
+    elif isinstance(wrong, list):
+        for value in wrong:
+            if isinstance(value, dict):
+                key = str(value.get("field") or value.get("name") or value.get("key") or "")
+                detail = value.get("message") or value.get("error") or value.get("value") or ""
+                comments.append(labels.get(key, str(detail or key or value)))
+            else:
+                comments.append(str(value))
+    elif wrong:
+        comments.append(str(wrong))
+    errors = envelope.get("errors")
     if errors:
         comments.append(f"Ошибка БЭЛС: {errors}")
     if not 200 <= http_status < 300:
