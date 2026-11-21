@@ -9,7 +9,7 @@ submit_readings:
       selector:
         date:
     day:
-      name: Общие (день)
+      name: День
       description: Ручное значение дневных показаний. Если не указано, используется выбранный сенсор.
       example: 12500
       selector:
