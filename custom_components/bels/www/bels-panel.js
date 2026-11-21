@@ -33,6 +33,7 @@ class BelsPanel extends HTMLElement {
     });
     hass.connection.subscribeEvents(event => {
       this._entries = event.data.entries || [];
+      if (event.data.item?.source === "manual") this._showSubmissionResult(event.data.item);
       if (this._historyVisible) {
         const target = this.shadowRoot.getElementById("details");
         if (target) {
@@ -119,9 +120,6 @@ class BelsPanel extends HTMLElement {
     const dayValue = preserveValues ? oldValue("reading-day") : this._sensorValue(entities.day);
     const nightValue = preserveValues ? oldValue("reading-night") : this._sensorValue(entities.night);
     const peakValue = preserveValues ? oldValue("reading-peak") : this._sensorValue(entities.peak);
-    const lastStatus = entries[0]?.status;
-    const statusText = lastStatus === "success" ? "Последняя отправка: успешно" :
-      lastStatus === "error" ? "Последняя отправка: ошибка" : "";
     const account = this._escape(config.account || "—");
     const phone = this._escape(config.phone || "—");
     const email = this._escape(config.email || "—");
@@ -131,7 +129,7 @@ class BelsPanel extends HTMLElement {
     this.shadowRoot.innerHTML = [
       "<ha-card header='БЭЛС — передача показаний'><div class='content'>",
       "<div class='subscriber'><div><span class='caption'>Лицевой счёт</span><strong>" + account + "</strong></div><div><span class='caption'>Телефон</span><strong>" + phone + "</strong></div><div><span class='caption'>E-mail</span><strong>" + email + "</strong></div></div>",
-      this._loadError || statusText ? "<div class='status'>" + this._escape(this._loadError || statusText) + "</div>" : "",
+      this._loadError ? "<div class='status'>" + this._escape(this._loadError) + "</div>" : "",
       "<fieldset><legend>Показания</legend>",
       "<div class='reading-grid'>",
       "<div class='field'><label for='reading-date'>Дата <span class='required'>*</span></label><input id='reading-date' type='date' required value='" + this._escape(dateValue) + "'></div>",
@@ -142,12 +140,12 @@ class BelsPanel extends HTMLElement {
       "<div class='actions'><button id='send' class='primary'>Отправить показания</button><button id='history' class='secondary'>История отправок</button></div>",
       "<div id='details' " + (this._historyVisible ? "" : "hidden") + "></div></div></ha-card>",
       "<style>",
-      ".content{padding:16px}.subscriber{display:grid;grid-template-columns:max-content 11ch minmax(0,1fr);gap:12px;margin-bottom:16px;padding:12px;border:1px solid var(--divider-color);border-radius:8px}.subscriber>div{display:flex;flex-direction:column;gap:4px;min-width:0;overflow-wrap:anywhere}.subscriber>div:nth-child(2) strong{white-space:nowrap;overflow:hidden;text-overflow:clip}.caption{font-size:12px;color:var(--secondary-text-color)}.subscriber strong{font-size:14px;font-weight:500}.status{margin-bottom:14px;color:var(--secondary-text-color)}",
-      "fieldset{border:1px solid var(--divider-color);border-radius:8px;padding:14px;margin:0 0 16px}legend{padding:0 6px;font-weight:600}.reading-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}.field{min-width:0;display:flex;flex-direction:column;gap:6px}label{font-size:14px}.required{color:var(--error-color)}",
-      "input{box-sizing:border-box;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit}.hint{margin-top:12px;font-size:12px;color:var(--secondary-text-color)}",
-      ".actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{appearance:none;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;padding:9px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;background:var(--card-background-color);color:var(--primary-text-color)}.actions button.primary{background:var(--primary-color);border-color:var(--primary-color);color:var(--text-primary-color,#fff)}.actions button:disabled{opacity:.6;cursor:default}#details{margin-top:16px;overflow:auto}",
-      "table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:7px;border-bottom:1px solid var(--divider-color);vertical-align:top}.error{color:var(--error-color)}.success{color:var(--success-color)}.data-button,.data-window button{appearance:none;border:1px solid var(--outline-color,var(--divider-color));border-radius:6px;padding:6px 10px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit;cursor:pointer}.data-window{position:fixed;z-index:10;top:10%;right:5%;width:min(680px,90vw);max-height:80vh;display:flex;flex-direction:column;background:var(--card-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:12px}.data-window-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;cursor:move;user-select:none;touch-action:none}.data-window-header>div{display:flex;gap:8px}.data-window .close-data{font-size:20px;line-height:1;padding:4px 9px}.data-content{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;margin:0;padding:12px;background:var(--secondary-background-color);border-radius:6px;font-size:12px;}",
-      "@media(max-width:420px){.subscriber{grid-template-columns:1fr}.reading-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}",
+      ".content{padding:var(--ha-card-padding,16px)}.subscriber{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-bottom:16px;padding:12px;border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,8px)}.subscriber>div{display:flex;flex-direction:column;gap:4px;min-width:0;overflow-wrap:anywhere;padding:0 12px}.subscriber>div:first-child{padding-left:0}.subscriber>div+div{border-left:1px solid var(--divider-color)}.caption{font-size:12px;color:var(--secondary-text-color)}.subscriber strong{font-size:14px;font-weight:500}.status{margin-bottom:14px;color:var(--secondary-text-color)}",
+      "fieldset{border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,8px);padding:14px;margin:0 0 16px}legend{padding:0 6px;font-weight:600}.reading-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}.field{min-width:0;display:flex;flex-direction:column;gap:6px}label{font-size:14px}.required{color:var(--error-color)}",
+      "input{box-sizing:border-box;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--input-fill-color,var(--divider-color));border-radius:var(--ha-textfield-border-radius,6px);background:var(--card-background-color);color:var(--primary-text-color);font:inherit}.hint{margin-top:12px;font-size:12px;color:var(--secondary-text-color)}",
+      ".actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{appearance:none;border:1px solid var(--primary-color);border-radius:var(--ha-button-border-radius,var(--ha-card-border-radius,6px));padding:9px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;background:var(--primary-color);color:var(--text-primary-color,var(--text-on-primary-color,#fff))}.actions button:disabled{opacity:.6;cursor:default}#details{margin-top:16px;overflow:auto}",
+      "table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:7px;border-bottom:1px solid var(--divider-color);vertical-align:top}.error{color:var(--error-color)}.success{color:var(--success-color)}.data-button,.data-window button{appearance:none;border:1px solid var(--divider-color);border-radius:var(--ha-button-border-radius,6px);padding:4px 7px;background:var(--secondary-background-color);color:var(--primary-text-color);font:inherit;cursor:pointer}.data-button{font-size:12px;display:inline-flex;align-items:center;gap:4px}.data-button ha-icon{--mdc-icon-size:16px}.data-window{position:fixed;z-index:10;top:10%;right:5%;width:min(680px,90vw);max-height:80vh;display:flex;flex-direction:column;background:var(--card-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,10px);box-shadow:var(--ha-card-box-shadow);padding:12px}.data-window-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;cursor:move;user-select:none;touch-action:none}.data-window-header>div{display:flex;gap:8px}.data-window .close-data{font-size:20px;line-height:1;padding:4px 9px}.data-summary{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 12px;padding:10px;border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,8px)}.data-summary-col{display:flex;flex-direction:column;gap:7px;min-width:0;padding:0 12px}.data-summary-col:first-child{padding-left:0}.data-summary-col+ .data-summary-col{border-left:1px solid var(--divider-color)}.data-summary-row{display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}.data-summary-label{font-size:11px;color:var(--secondary-text-color)}.data-summary-value{font-size:13px}.data-content{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;margin:0;padding:12px;background:var(--secondary-background-color);border-radius:var(--ha-card-border-radius,6px);font-size:12px}.submission-overlay{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--ha-dialog-scrim-background,rgba(0,0,0,.45))}.submission-dialog{width:min(440px,100%);padding:20px;background:var(--card-background-color);color:var(--primary-text-color);border-radius:var(--ha-card-border-radius,12px);box-shadow:var(--ha-card-box-shadow)}.submission-dialog h3{margin:0 0 12px}.submission-dialog p{margin:0 0 16px;white-space:pre-wrap}.submission-dialog button{border:0;border-radius:var(--ha-button-border-radius,6px);padding:9px 16px;background:var(--primary-color);color:var(--text-primary-color,var(--text-on-primary-color,#fff));font:inherit;cursor:pointer}.submission-dialog .success{color:var(--success-color)}.submission-dialog .error{color:var(--error-color)}",
+      "@media(max-width:420px){.subscriber{grid-template-columns:1fr}.subscriber>div{padding:8px 0}.subscriber>div+div{border-left:0;border-top:1px solid var(--divider-color)}.data-summary{grid-template-columns:1fr}.data-summary-col{padding:8px 0}.data-summary-col+ .data-summary-col{border-left:0;border-top:1px solid var(--divider-color)}}",
       "</style>"
     ].join("");
     if (this._configLoaded) this._formInitialized = true;
@@ -216,10 +214,10 @@ class BelsPanel extends HTMLElement {
 
   _historyHtml(entries) {
     if (!entries.length) return "<p>История пока пуста.</p>";
-    return "<table><thead><tr><th>Дата</th><th>Источник</th><th>Статус</th><th>Комментарий</th><th>Данные</th></tr></thead><tbody>" +
+    return "<table><thead><tr><th>Дата</th><th>Режим</th><th>Статус</th><th>Комментарий</th><th>raw</th></tr></thead><tbody>" +
       entries.map((item, index) => "<tr><td>" + this._escape(this._formatTimestamp(item.timestamp)) + "</td><td>" + this._escape(item.source_label || item.source || "") +
-      "</td><td class='" + (item.status === "success" ? "success" : "error") + "'>" + this._escape(item.status_label || item.status || "") +
-      "</td><td>" + this._escape(item.comment || "") + "</td><td><button class='data-button' data-index='" + index + "'>Показать</button></td></tr>").join("") +
+      "</td><td class='" + (item.status === "success" ? "success" : "error") + "'><ha-icon icon='" + (item.status === "success" ? "mdi:check-circle" : "mdi:close-circle") + "' title='" + (item.status === "success" ? "Успешно" : "Ошибка") + "'></ha-icon></td>" +
+      "<td>" + this._escape(item.comment || "") + "</td><td><button class='data-button' data-index='" + index + "' title='Показать JSON'><ha-icon icon='mdi:file-json'></ha-icon> JSON</button></td></tr>").join("") +
       "</tbody></table>";
   }
 
@@ -236,12 +234,28 @@ class BelsPanel extends HTMLElement {
       response: item.response,
       http_status: item.http_status
     }, null, 2);
+    const formData = item.form?.data || {};
+    const readings = [
+      ["Общие (день)", formData["pattern-pokazaniya-obshchie-den"]],
+      ["Ночь", formData["pattern-pokazaniya-noch"]],
+      ["Пик", formData["pattern-pokazaniya-pik"]]
+    ].filter(([, value]) => value !== undefined && value !== null && value !== "");
+    const summaryRow = (label, value) => "<div class='data-summary-row'><span class='data-summary-label'>" + this._escape(label) + "</span><span class='data-summary-value'>" + this._escape(value || "—") + "</span></div>";
+    const summary = "<div class='data-summary'><div class='data-summary-col'>" +
+      summaryRow("Лицевой счёт", formData["pattern-licevoy-schet"]) +
+      summaryRow("E-mail", formData["email-emayl"]) +
+      summaryRow("Телефон", formData["phone-telefon"]) +
+      summaryRow("Статус отправки", item.status === "success" ? "Успешно" : "Ошибка") +
+      "</div><div class='data-summary-col'>" +
+      summaryRow("Дата", formData["date-data"]) +
+      readings.map(([label, value]) => summaryRow(label, value)).join("") +
+      "</div></div>";
     const windowElement = document.createElement("section");
     windowElement.id = "data-window";
     windowElement.className = "data-window";
     windowElement.setAttribute("role", "region");
     windowElement.setAttribute("aria-label", "Данные отправки");
-    windowElement.innerHTML = "<div class='data-window-header'><strong>Данные отправки</strong><div><button class='copy-data'>Скопировать</button><button class='close-data' aria-label='Закрыть'>×</button></div></div><pre class='data-content'></pre>";
+    windowElement.innerHTML = "<div class='data-window-header'><strong>Данные отправки</strong><div><button class='copy-data'>Скопировать</button><button class='close-data' aria-label='Закрыть'>×</button></div></div>" + summary + "<pre class='data-content'></pre>";
     windowElement.querySelector(".data-content").textContent = data;
     const header = windowElement.querySelector(".data-window-header");
     header.addEventListener("pointerdown", event => {
@@ -280,9 +294,8 @@ class BelsPanel extends HTMLElement {
           document.execCommand("copy");
           area.remove();
         }
-        button.textContent = "Скопировано";
       } catch (error) {
-        button.textContent = "Не удалось скопировать";
+        this._showMessage("Не удалось скопировать JSON: " + error.message);
       }
     });
     this.shadowRoot.appendChild(windowElement);
@@ -292,6 +305,20 @@ class BelsPanel extends HTMLElement {
     const target = this.shadowRoot.getElementById("details");
     target.hidden = false;
     target.textContent = message;
+  }
+
+  _showSubmissionResult(item) {
+    this.shadowRoot.getElementById("submission-overlay")?.remove();
+    const overlay = document.createElement("div");
+    overlay.id = "submission-overlay";
+    overlay.className = "submission-overlay";
+    overlay.innerHTML = "<section class='submission-dialog' role='dialog' aria-modal='true' aria-labelledby='submission-title'>" +
+      "<h3 id='submission-title'>Результат отправки</h3><p class='" + (item.status === "success" ? "success" : "error") + "'>" +
+      this._escape(item.status === "success" ? "Показания отправлены." : (item.comment || "Не удалось отправить показания.")) +
+      "</p><button type='button'>Закрыть</button></section>";
+    overlay.querySelector("button").addEventListener("click", () => overlay.remove());
+    overlay.addEventListener("click", event => { if (event.target === overlay) overlay.remove(); });
+    this.shadowRoot.appendChild(overlay);
   }
 
   _escape(value) {
