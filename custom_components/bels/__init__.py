@@ -217,7 +217,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await store.async_save(history)
         hass.bus.async_fire(
             f"{DOMAIN}_submission_finished",
-            {"entries": history["entries"]},
+            {"entries": history["entries"], "item": item},
         )
         return item
 
