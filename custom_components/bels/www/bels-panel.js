@@ -139,7 +139,7 @@ class BelsPanel extends HTMLElement {
       "<fieldset><legend>Показания</legend>",
       "<div class='reading-grid'>",
       "<div class='field'><label for='reading-date'>Дата <span class='required'>*</span></label><input id='reading-date' type='date' required value='" + this._escape(dateValue) + "'></div>",
-      "<div class='field'><label for='reading-day'>Общие (день) <span class='required'>*</span></label><input id='reading-day' type='number' step='any' required value='" + this._escape(dayValue) + "'></div>",
+      "<div class='field'><label for='reading-day'>День <span class='required'>*</span></label><input id='reading-day' type='number' step='any' required value='" + this._escape(dayValue) + "'></div>",
       "<div class='field'><label for='reading-night'>Ночь</label><input id='reading-night' type='number' step='any' value='" + this._escape(nightValue) + "'></div>",
       "<div class='field'><label for='reading-peak'>Пик</label><input id='reading-peak' type='number' step='any' value='" + this._escape(peakValue) + "'></div>",
       "</div>" + roundingHint + "</fieldset>",
@@ -150,7 +150,7 @@ class BelsPanel extends HTMLElement {
       "fieldset{border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,8px);padding:14px;margin:0 0 16px}legend{padding:0 6px;font-weight:600}.reading-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}.field{min-width:0;display:flex;flex-direction:column;gap:6px}label{font-size:14px}.required{color:var(--error-color)}",
       "input{box-sizing:border-box;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--input-fill-color,var(--divider-color));border-radius:var(--ha-textfield-border-radius,6px);background:var(--card-background-color);color:var(--primary-text-color);font:inherit}.hint{margin-top:12px;font-size:12px;color:var(--secondary-text-color)}",
       ".actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{appearance:none;border:1px solid var(--primary-color);border-radius:var(--ha-button-border-radius,var(--ha-card-border-radius,6px));padding:9px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;background:var(--primary-color);color:var(--text-primary-color)}.actions button:disabled{opacity:.6;cursor:default}#details{margin-top:16px;overflow:auto}",
-      "table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px}td,th{text-align:left;padding:5px 4px;border-bottom:1px solid var(--divider-color);vertical-align:top;overflow-wrap:anywhere}th:nth-child(1){width:26%}th:nth-child(2){width:12%}th:nth-child(3){width:9%}th:nth-child(5){width:40px}.history-date{white-space:nowrap}.history-mode{white-space:nowrap}.history-filter-toolbar{display:flex;justify-content:flex-end;align-items:center;margin:0 0 6px}.history-filter-toggle,.history-status-filter button{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:2px;border:1px solid var(--divider-color);border-radius:6px;background:var(--secondary-background-color);color:var(--primary-text-color);cursor:pointer}.history-filter-toggle ha-icon{--mdc-icon-size:18px}.history-filter-panel{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:0 0 8px;padding:8px;border:1px solid var(--divider-color);border-radius:6px}.history-filter-panel[hidden]{display:none}.history-status-filter{display:flex;gap:4px;align-items:center}.history-status-filter button[aria-pressed='true']{border-color:var(--primary-color)}.history-status-filter ha-icon{--mdc-icon-size:18px}.history-date-filter{width:150px;max-width:100%;min-width:0}.error{color:var(--error-color)}.success{color:var(--success-color)}.data-button,.data-window button{appearance:none;border:1px solid var(--divider-color);border-radius:var(--ha-button-border-radius,6px);padding:4px 7px;background:var(--secondary-background-color);color:var(--primary-text-color);font:inherit;cursor:pointer}.data-button{width:28px;height:28px;padding:3px;display:inline-flex;align-items:center;justify-content:center}.data-button ha-icon{--mdc-icon-size:18px}.data-window{position:fixed;z-index:10;top:10%;right:5%;width:min(680px,90vw);max-height:80vh;display:flex;flex-direction:column;background:var(--card-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,10px);box-shadow:var(--ha-card-box-shadow);padding:12px}.data-window-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;cursor:move;user-select:none;touch-action:none}.data-window-header>div{display:flex;gap:8px}.data-window .close-data{font-size:20px;line-height:1;padding:4px 9px}.data-summary{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 12px;padding:8px 10px;border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,8px)}.data-summary-col{display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:7px;row-gap:5px;min-width:0;padding:0 10px}.data-summary-col:first-child{padding-left:0}.data-summary-col+ .data-summary-col{border-left:1px solid var(--divider-color)}.data-summary-row{display:contents}.data-summary-label{font-size:11px;color:var(--secondary-text-color);white-space:nowrap}.data-summary-value{min-width:0;font-size:13px;overflow-wrap:anywhere}.data-content{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;margin:0;padding:12px;background:var(--secondary-background-color);border-radius:var(--ha-card-border-radius,6px);font-size:12px}.submission-overlay{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--ha-dialog-scrim-background)}.submission-dialog{width:min(440px,100%);padding:20px;background:var(--card-background-color);color:var(--primary-text-color);border-radius:var(--ha-card-border-radius,12px);box-shadow:var(--ha-card-box-shadow)}.submission-dialog h3{margin:0 0 12px}.submission-dialog p{margin:0 0 16px;white-space:pre-wrap}.submission-dialog button{border:0;border-radius:var(--ha-button-border-radius,6px);padding:9px 16px;background:var(--primary-color);color:var(--text-primary-color,var(--text-on-primary-color,#fff));font:inherit;cursor:pointer}.submission-dialog .success{color:var(--success-color)}.submission-dialog .error{color:var(--error-color)}",
+      "table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px}td,th{text-align:left;padding:5px 4px;border-bottom:1px solid var(--divider-color);vertical-align:top;overflow-wrap:anywhere}th:nth-child(1){width:26%}th:nth-child(2){width:12%}th:nth-child(3){width:9%}th:nth-child(5){width:40px}.history-date{white-space:nowrap}.history-mode{white-space:nowrap}.history-filter-toolbar{display:flex;justify-content:flex-end;align-items:center;margin:0 0 6px}.history-filter-toggle,.history-status-filter button{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:2px;border:1px solid var(--divider-color);border-radius:6px;background:var(--secondary-background-color);color:var(--primary-text-color);cursor:pointer}.history-filter-toggle ha-icon{--mdc-icon-size:18px}.history-filter-panel{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:0 0 8px;padding:8px;border:1px solid var(--divider-color);border-radius:6px}.history-filter-panel[hidden]{display:none}.history-status-filter{display:flex;gap:4px;align-items:center}.history-status-filter button[aria-pressed='true']{border-color:var(--primary-color)}.history-status-filter ha-icon{--mdc-icon-size:18px}.history-date-filter{width:150px;max-width:100%;min-width:0}.error{color:var(--error-color)}.success{color:var(--success-color)}.data-button,.data-window button{appearance:none;border:1px solid var(--divider-color);border-radius:var(--ha-button-border-radius,6px);padding:4px 7px;background:var(--secondary-background-color);color:var(--primary-text-color);font:inherit;cursor:pointer}.data-button{width:28px;height:28px;padding:3px;display:inline-flex;align-items:center;justify-content:center}.data-button ha-icon{--mdc-icon-size:18px}.data-window{position:fixed;z-index:10;top:10%;right:5%;width:min(680px,90vw);max-height:80vh;display:flex;flex-direction:column;background:var(--card-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,10px);box-shadow:var(--ha-card-box-shadow);padding:12px}.data-window-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;cursor:move;user-select:none;touch-action:none}.data-window-header>div{display:flex;gap:8px}.data-window .close-data{font-size:20px;line-height:1;padding:4px 9px}.data-summary{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 12px;padding:8px 10px;border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,8px)}.data-summary-col{display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:7px;row-gap:5px;min-width:0;padding:0 10px}.data-summary-col:first-child{padding-left:0}.data-summary-col+ .data-summary-col{border-left:1px solid var(--divider-color)}.data-summary-row{display:contents}.data-summary-label{font-size:11px;color:var(--secondary-text-color);white-space:nowrap}.data-summary-value{min-width:0;font-size:13px;overflow-wrap:anywhere}.data-content{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;margin:0;padding:12px;background:var(--secondary-background-color);border-radius:var(--ha-card-border-radius,6px);font-size:12px}.submission-overlay{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--ha-dialog-scrim-background)}.submission-dialog{width:min(440px,100%);padding:20px;background:var(--card-background-color);color:var(--primary-text-color);border-radius:var(--ha-card-border-radius,12px);box-shadow:var(--ha-card-box-shadow)}.submission-dialog h3{margin:0 0 12px}.submission-dialog p{margin:0 0 16px;white-space:pre-wrap}.submission-dialog button{border:0;border-radius:var(--ha-button-border-radius,6px);padding:9px 16px;background:var(--primary-color);color:var(--text-primary-color,var(--text-on-primary-color,#fff));font:inherit;cursor:pointer}.submission-dialog button:disabled{opacity:.6;cursor:default}.submission-dialog .success{color:var(--success-color)}.submission-dialog .error{color:var(--error-color)}.confirm-table{width:100%;border-collapse:collapse;margin:0 0 16px}.confirm-table th,.confirm-table td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--divider-color);overflow-wrap:anywhere}.confirm-table th{width:42%;font-weight:500;color:var(--secondary-text-color)}.confirm-actions{display:flex;justify-content:flex-end;gap:8px}",
       "@media(max-width:420px){.subscriber{grid-template-columns:1fr}.subscriber>div{padding:8px 0}.subscriber>div+div{border-left:0;border-top:1px solid var(--divider-color)}.data-summary{grid-template-columns:1fr}.data-summary-col{padding:8px 0}.data-summary-col+ .data-summary-col{border-left:0;border-top:1px solid var(--divider-color)}}",
       "</style>"
     ].join("");
@@ -158,19 +158,20 @@ class BelsPanel extends HTMLElement {
     this.shadowRoot.getElementById("reading-date").addEventListener("change", event => {
       this._selectedDate = event.target.value || this._selectedDate;
     });
-    this.shadowRoot.getElementById("send").addEventListener("click", async () => {
-      const button = this.shadowRoot.getElementById("send");
+    this.shadowRoot.getElementById("send").addEventListener("click", () => {
       const dateInput = this.shadowRoot.getElementById("reading-date");
       const dayInput = this.shadowRoot.getElementById("reading-day");
       const nightInput = this.shadowRoot.getElementById("reading-night");
       const peakInput = this.shadowRoot.getElementById("reading-peak");
       const day = dayInput.value.trim();
+      const night = nightInput.value.trim();
+      const peak = peakInput.value.trim();
       if (!dateInput.value) {
         this._showMessage("Выберите дату показаний.");
         return;
       }
       if (!day || !Number.isFinite(Number(day))) {
-        this._showMessage("Укажите числовое значение «Общие (день)».");
+        this._showMessage("Укажите числовое значение «День».");
         dayInput.focus();
         return;
       }
@@ -182,24 +183,15 @@ class BelsPanel extends HTMLElement {
         }
       }
       this._selectedDate = dateInput.value;
-      button.disabled = true;
-      try {
-        await this._hass.callService("bels", "submit_readings", {
-          date: dateInput.value,
-          day,
-          night: nightInput.value.trim(),
-          peak: peakInput.value.trim(),
-          screen_width: window.screen?.width || 0,
-          screen_height: window.screen?.height || 0,
-          viewport_width: window.innerWidth || 0,
-          viewport_height: window.innerHeight || 0,
-          local_locale: (navigator.language || "ru").split("-")[0]
-        });
-      } catch (e) {
-        this._showMessage("Не удалось вызвать отправку: " + e.message);
-      } finally {
-        button.disabled = false;
-      }
+      this._showSubmissionConfirm({
+        date: dateInput.value,
+        account: this._config.account || "—",
+        phone: this._config.phone || "",
+        email: this._config.email || "",
+        day,
+        night,
+        peak
+      });
     });
     this.shadowRoot.getElementById("history").addEventListener("click", () => {
       this._historyVisible = !this._historyVisible;
@@ -291,7 +283,7 @@ class BelsPanel extends HTMLElement {
     }, null, 2);
     const formData = item.form?.data || {};
     const readings = [
-      ["Общие (день)", formData["pattern-pokazaniya-obshchie-den"]],
+      ["День", formData["pattern-pokazaniya-obshchie-den"]],
       ["Ночь", formData["pattern-pokazaniya-noch"]],
       ["Пик", formData["pattern-pokazaniya-pik"]]
     ].filter(([, value]) => value !== undefined && value !== null && value !== "");
@@ -360,6 +352,54 @@ class BelsPanel extends HTMLElement {
     const target = this.shadowRoot.getElementById("details");
     target.hidden = false;
     target.textContent = message;
+  }
+
+  _showSubmissionConfirm(values) {
+    this.shadowRoot.getElementById("submission-confirm-overlay")?.remove();
+    const overlay = document.createElement("div");
+    overlay.id = "submission-confirm-overlay";
+    overlay.className = "submission-overlay";
+    const rows = [
+      ["Дата", values.date],
+      ["Лицевой счёт", values.account],
+      ["Телефон", values.phone],
+      ["e-mail", values.email],
+      ["День", values.day],
+      ...(values.night ? [["Ночь", values.night]] : []),
+      ...(values.peak ? [["Пик", values.peak]] : [])
+    ];
+    overlay.innerHTML = "<section class='submission-dialog' role='dialog' aria-modal='true' aria-labelledby='submission-confirm-title'>" +
+      "<h3 id='submission-confirm-title'>Подтвердите отправку показаний</h3>" +
+      "<table class='confirm-table'><tbody>" + rows.map(([label, value]) =>
+        "<tr><th>" + this._escape(label) + "</th><td>" + this._escape(value) + "</td></tr>"
+      ).join("") + "</tbody></table>" +
+      "<div class='confirm-actions'><button type='button' class='cancel-confirm'>Отмена</button><button type='button' class='accept-confirm'>Отправить</button></div>" +
+      "</section>";
+    overlay.querySelector(".cancel-confirm").addEventListener("click", () => overlay.remove());
+    overlay.addEventListener("click", event => { if (event.target === overlay) overlay.remove(); });
+    overlay.querySelector(".accept-confirm").addEventListener("click", async event => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        await this._hass.callService("bels", "submit_readings", {
+          date: values.date,
+          day: values.day,
+          night: values.night,
+          peak: values.peak,
+          screen_width: window.screen?.width || 0,
+          screen_height: window.screen?.height || 0,
+          viewport_width: window.innerWidth || 0,
+          viewport_height: window.innerHeight || 0,
+          local_locale: (navigator.language || "ru").split("-")[0]
+        });
+        overlay.remove();
+      } catch (error) {
+        button.disabled = false;
+        this._showMessage("Не удалось вызвать отправку: " + error.message);
+        overlay.remove();
+      }
+    });
+    this.shadowRoot.appendChild(overlay);
   }
 
   _showSubmissionResult(item) {
