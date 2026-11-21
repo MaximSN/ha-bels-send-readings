@@ -91,6 +91,9 @@ async def websocket_get_history(hass, connection, msg):
                 "peak": options.get(CONF_PEAK_ENTITY, ""),
             },
             "round_to": int(options.get(CONF_ROUND_TO, 50)),
+            "auto_enabled": bool(options.get(CONF_AUTO_ENABLED, False)),
+            "auto_day": int(options.get(CONF_AUTO_DAY, 1)),
+            "auto_time": str(options.get(CONF_AUTO_TIME, "09:00:00")),
         }
 
     connection.send_result(msg["id"], {"entries": entries, "config": config})
