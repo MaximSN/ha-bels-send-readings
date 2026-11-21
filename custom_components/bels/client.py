@@ -93,7 +93,7 @@ def interpret_response(data: dict, http_status: int) -> tuple[str, str]:
     labels = {
         "pattern-licevoy-schet": "Неправильно указан лицевой счёт",
         "date-data": "Неправильно указана дата показаний",
-        "pattern-pokazaniya-obshchie-den": "Неправильно указано показание «Общие (день)»",
+        "pattern-pokazaniya-obshchie-den": "Неправильно указано показание «День»",
         "pattern-pokazaniya-noch": "Неправильно указано показание «Ночь»",
         "pattern-pokazaniya-pik": "Неправильно указано показание «Пик»",
         "email-emayl": "Неправильно указан e-mail",
