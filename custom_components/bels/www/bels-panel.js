@@ -123,9 +123,11 @@ class BelsPanel extends HTMLElement {
     const account = this._escape(config.account || "—");
     const phone = this._escape(config.phone || "—");
     const email = this._escape(config.email || "—");
-    const autoSendHint = config.auto_enabled
-      ? "<div class='auto-send-hint'>Включена автоматическая отправка показаний на " + this._escape(config.auto_day) + " день месяца в " + this._escape(config.auto_time) + "</div>"
-      : "";
+    const autoDay = Number(config.auto_day);
+    const scheduleDay = autoDay === 31 ? "последний день месяца" : this._escape(autoDay) + " число месяца";
+    const autoSendHint = "<div class='auto-send-hint'><div>Автоматическая отправка показаний: " +
+      (config.auto_enabled ? "Включена" : "Выключена") +
+      "</div><div>Расписание: " + scheduleDay + " в " + this._escape(config.auto_time || "09:00:00") + "</div></div>";
     const roundingHint = roundTo > 0
       ? "<div class='hint'>Показания округлены вверх до ближайшего кратного " + this._escape(roundTo) + "</div>"
       : "";
@@ -144,7 +146,7 @@ class BelsPanel extends HTMLElement {
       "<div class='actions'><button id='send' class='primary'>Отправить показания</button><button id='history' class='secondary'>История отправок</button></div>",
       "<div id='details' " + (this._historyVisible ? "" : "hidden") + "></div></div></ha-card>",
       "<style>",
-      ".content{padding:var(--ha-card-padding,16px)}.auto-send-hint{margin:0 0 12px;font-size:14px;color:var(--primary-text-color)}.subscriber{display:grid;grid-template-columns:max-content max-content minmax(0,1fr);gap:0;margin-bottom:16px;padding:12px;border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,8px)}.subscriber>div{display:flex;flex-direction:column;gap:4px;min-width:0;overflow-wrap:anywhere;padding:0 12px}.subscriber>div:first-child{padding-left:0}.subscriber>div+div{border-left:1px solid var(--divider-color)}.caption{font-size:12px;color:var(--secondary-text-color)}.subscriber strong{font-size:14px;font-weight:500;white-space:nowrap}.status{margin-bottom:14px;color:var(--secondary-text-color)}",
+      ".content{padding:0 var(--ha-card-padding,16px) var(--ha-card-padding,16px)}.auto-send-hint{margin:0 0 12px;font-size:14px;line-height:1.4;color:var(--primary-text-color)}.subscriber{display:grid;grid-template-columns:max-content max-content minmax(0,1fr);gap:0;margin-bottom:16px;padding:12px;border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,8px)}.subscriber>div{display:flex;flex-direction:column;gap:4px;min-width:0;overflow-wrap:anywhere;padding:0 12px}.subscriber>div:first-child{padding-left:0}.subscriber>div+div{border-left:1px solid var(--divider-color)}.caption{font-size:12px;color:var(--secondary-text-color)}.subscriber strong{font-size:14px;font-weight:500;white-space:nowrap}.status{margin-bottom:14px;color:var(--secondary-text-color)}",
       "fieldset{border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,8px);padding:14px;margin:0 0 16px}legend{padding:0 6px;font-weight:600}.reading-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}.field{min-width:0;display:flex;flex-direction:column;gap:6px}label{font-size:14px}.required{color:var(--error-color)}",
       "input{box-sizing:border-box;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--input-fill-color,var(--divider-color));border-radius:var(--ha-textfield-border-radius,6px);background:var(--card-background-color);color:var(--primary-text-color);font:inherit}.hint{margin-top:12px;font-size:12px;color:var(--secondary-text-color)}",
       ".actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{appearance:none;border:1px solid var(--primary-color);border-radius:var(--ha-button-border-radius,var(--ha-card-border-radius,6px));padding:9px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;background:var(--primary-color);color:var(--text-primary-color)}.actions button:disabled{opacity:.6;cursor:default}#details{margin-top:16px;overflow:auto}",
@@ -216,19 +218,59 @@ class BelsPanel extends HTMLElement {
     return match ? match[1] + " " + match[2] : String(value || "");
   }
 
+  _filteredHistoryEntries(entries) {
+    return entries.filter(item => {
+      const date = this._formatTimestamp(item.timestamp).slice(0, 10);
+      const dateMatches = !this._historyDateFilter || date === this._historyDateFilter;
+      const statusMatches = !this._historyStatusFilter || item.status === this._historyStatusFilter;
+      return dateMatches && statusMatches;
+    });
+  }
+
   _historyHtml(entries) {
     if (!entries.length) return "<p>История пока пуста.</p>";
-    return "<table><thead><tr><th>Дата</th><th>Режим</th><th>Статус</th><th>Комментарий</th><th>raw</th></tr></thead><tbody>" +
-      entries.map((item, index) => "<tr><td>" + this._escape(this._formatTimestamp(item.timestamp)) + "</td><td>" + this._escape(item.source_label || item.source || "") +
-      "</td><td class='" + (item.status === "success" ? "success" : "error") + "'><ha-icon icon='" + (item.status === "success" ? "mdi:check-circle" : "mdi:close-circle") + "' title='" + (item.status === "success" ? "Успешно" : "Ошибка") + "'></ha-icon></td>" +
-      "<td>" + this._escape(item.comment || "") + "</td><td><button class='data-button' data-index='" + index + "' title='Показать JSON'><ha-icon icon='mdi:file-json'></ha-icon> JSON</button></td></tr>").join("") +
-      "</tbody></table>";
+    const filtered = this._filteredHistoryEntries(entries);
+    const rows = filtered.map((item, index) => {
+      let details = item.comment || "";
+      if (item.status === "success") {
+        const formData = item.form?.data || {};
+        const readings = [
+          ["д", formData["pattern-pokazaniya-obshchie-den"]],
+          ["н", formData["pattern-pokazaniya-noch"]],
+          ["п", formData["pattern-pokazaniya-pik"]]
+        ].filter(([, value]) => value !== undefined && value !== null && value !== "");
+        details = readings.map(([label, value]) => label + ": " + value).join(", ");
+      }
+      return "<tr><td>" + this._escape(this._formatTimestamp(item.timestamp)) + "</td><td>" + this._escape(item.source_label || item.source || "") +
+        "</td><td class='" + (item.status === "success" ? "success" : "error") + "'><ha-icon icon='" + (item.status === "success" ? "mdi:check-circle" : "mdi:close-circle") + "' title='" + (item.status === "success" ? "Успешно" : "Ошибка") + "'></ha-icon></td>" +
+        "<td>" + this._escape(details) + "</td><td><button class='data-button' data-index='" + index + "' title='Показать JSON'><ha-icon icon='mdi:file-json'></ha-icon> JSON</button></td></tr>";
+    }).join("");
+    return "<table><thead><tr><th>Дата<br><input class='history-date-filter' type='date' aria-label='Фильтр по дате' value='" + this._escape(this._historyDateFilter || "") + "'></th>" +
+      "<th>Режим</th><th>Статус<br><select class='history-status-filter' aria-label='Фильтр по статусу'><option value=''>Все</option><option value='success' " + (this._historyStatusFilter === "success" ? "selected" : "") + ">Успешно</option><option value='error' " + (this._historyStatusFilter === "error" ? "selected" : "") + ">Ошибка</option></select></th>" +
+      "<th>Показания</th><th>raw</th></tr></thead><tbody>" + (rows || "<tr><td colspan='5'>Нет записей по выбранным фильтрам.</td></tr>") + "</tbody></table>";
   }
 
   _bindHistoryActions(entries) {
-    this.shadowRoot.querySelectorAll(".data-button").forEach(button => {
-      button.addEventListener("click", () => this._openDataWindow(entries[Number(button.dataset.index)]));
+    const target = this.shadowRoot.getElementById("details");
+    target.querySelector(".history-date-filter")?.addEventListener("change", event => {
+      this._historyDateFilter = event.target.value;
+      this._refreshHistory(entries);
     });
+    target.querySelector(".history-status-filter")?.addEventListener("change", event => {
+      this._historyStatusFilter = event.target.value;
+      this._refreshHistory(entries);
+    });
+    const filtered = this._filteredHistoryEntries(entries);
+    target.querySelectorAll(".data-button").forEach(button => {
+      button.addEventListener("click", () => this._openDataWindow(filtered[Number(button.dataset.index)]));
+    });
+  }
+
+  _refreshHistory(entries) {
+    const target = this.shadowRoot.getElementById("details");
+    if (!target) return;
+    target.innerHTML = this._historyHtml(entries);
+    this._bindHistoryActions(entries);
   }
 
   _openDataWindow(item) {
