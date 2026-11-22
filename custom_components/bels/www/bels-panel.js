@@ -66,7 +66,7 @@ class BelsPanel extends HTMLElement {
     if (state === undefined || state === null) return "";
     const value = Number(state);
     if (!Number.isFinite(value)) return "";
-    const roundTo = Number(this._config.round_to ?? 50);
+    const roundTo = this._config.round_to == null ? null : Number(this._config.round_to);
     const rounded = roundTo > 0 ? Math.ceil(value / roundTo) * roundTo : value;
     return String(rounded);
   }
@@ -113,7 +113,7 @@ class BelsPanel extends HTMLElement {
     const entries = this._entries || [];
     const config = this._config || {};
     const entities = config.entities || {};
-    const roundTo = Number(config.round_to ?? 0);
+    const roundTo = config.round_to == null ? null : Number(config.round_to);
     const oldValue = id => this.shadowRoot.getElementById(id)?.value;
     const preserveValues = this._configLoaded === true && this._formInitialized === true;
     const dateValue = preserveValues ? (oldValue("reading-date") || this._selectedDate) : this._selectedDate;
@@ -124,11 +124,11 @@ class BelsPanel extends HTMLElement {
     const phone = this._escape(config.phone || "—");
     const email = this._escape(config.email || "—");
     const autoDay = Number(config.auto_day);
-    const scheduleDay = autoDay === 31 ? "последний день месяца" : this._escape(autoDay) + " число месяца";
+    const scheduleDay = Number.isFinite(autoDay) ? (autoDay === 31 ? "последний день месяца" : this._escape(autoDay) + " число месяца") : "не задан";
     const autoSendHint = "<div class='auto-send-hint'><div>Автоматическая отправка показаний: " +
-      (config.auto_enabled ? "Включена" : "Выключена") +
-      "</div><div>Расписание: " + scheduleDay + " в " + this._escape(config.auto_time || "09:00:00") + "</div></div>";
-    const roundingHint = roundTo > 0
+      (config.auto_enabled === true ? "Включена" : config.auto_enabled === false ? "Выключена" : "Не настроена") +
+      "</div><div>Расписание: " + scheduleDay + " в " + this._escape(config.auto_time || "не задано") + "</div></div>";
+    const roundingHint = roundTo != null && roundTo > 0
       ? "<div class='hint'>Показания округлены вверх до ближайшего кратного " + this._escape(roundTo) + "</div>"
       : "";
     this.shadowRoot.innerHTML = [
