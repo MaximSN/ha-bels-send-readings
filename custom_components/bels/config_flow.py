@@ -24,8 +24,8 @@ class BelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(title="БЭЛС — передача показаний", data=user_input)
         schema = vol.Schema({
             vol.Required(CONF_ACCOUNT): str,
-            vol.Optional(CONF_PHONE, default=""): str,
-            vol.Optional(CONF_EMAIL, default=""): str,
+            vol.Optional(CONF_PHONE): str,
+            vol.Optional(CONF_EMAIL): str,
         })
         return self.async_show_form(step_id="user", data_schema=schema)
 
@@ -60,9 +60,11 @@ class BelsOptionsFlow(config_entries.OptionsFlow):
             vol.Required(CONF_ACCOUNT, default=entry_data.get(CONF_ACCOUNT, "")): str,
             vol.Optional(CONF_PHONE, default=entry_data.get(CONF_PHONE, "")): str,
             vol.Optional(CONF_EMAIL, default=entry_data.get(CONF_EMAIL, "")): str,
-            vol.Required(CONF_DAY_ENTITY, default=current.get(CONF_DAY_ENTITY, "sensor.elektroenergiia")): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
+            (
+                vol.Required(CONF_DAY_ENTITY, default=current[CONF_DAY_ENTITY])
+                if CONF_DAY_ENTITY in current
+                else vol.Required(CONF_DAY_ENTITY)
+            ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
             (
                 vol.Optional(CONF_NIGHT_ENTITY, default=current[CONF_NIGHT_ENTITY])
                 if current.get(CONF_NIGHT_ENTITY)
@@ -73,15 +75,29 @@ class BelsOptionsFlow(config_entries.OptionsFlow):
                 if current.get(CONF_PEAK_ENTITY)
                 else vol.Optional(CONF_PEAK_ENTITY)
             ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
-            vol.Required(CONF_ROUND_TO, default=current.get(CONF_ROUND_TO, 50)): vol.All(
-                vol.Coerce(int), vol.Range(min=0, max=1000000)
-            ),
-            vol.Required(CONF_AUTO_ENABLED, default=current.get(CONF_AUTO_ENABLED, False)): bool,
-            vol.Required(CONF_AUTO_DAY, default=current.get(CONF_AUTO_DAY, 1)): selector.NumberSelector(
+            (
+                vol.Required(CONF_ROUND_TO, default=current[CONF_ROUND_TO])
+                if CONF_ROUND_TO in current
+                else vol.Required(CONF_ROUND_TO)
+            ): vol.All(vol.Coerce(int), vol.Range(min=0, max=1000000)),
+            (
+                vol.Required(CONF_AUTO_ENABLED, default=current[CONF_AUTO_ENABLED])
+                if CONF_AUTO_ENABLED in current
+                else vol.Required(CONF_AUTO_ENABLED)
+            ): bool,
+            (
+                vol.Required(CONF_AUTO_DAY, default=current[CONF_AUTO_DAY])
+                if CONF_AUTO_DAY in current
+                else vol.Required(CONF_AUTO_DAY)
+            ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=1, max=31, step=1, mode=selector.NumberSelectorMode.BOX
                 )
             ),
-            vol.Required(CONF_AUTO_TIME, default=current.get(CONF_AUTO_TIME, "09:00:00")): selector.TimeSelector(),
+            (
+                vol.Required(CONF_AUTO_TIME, default=current[CONF_AUTO_TIME])
+                if CONF_AUTO_TIME in current
+                else vol.Required(CONF_AUTO_TIME)
+            ): selector.TimeSelector(),
         }
         return self.async_show_form(step_id="init", data_schema=vol.Schema(schema))
