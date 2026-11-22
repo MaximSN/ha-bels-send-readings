@@ -91,7 +91,7 @@ async def websocket_get_history(hass, connection, msg):
                 "peak": options.get(CONF_PEAK_ENTITY, ""),
             },
             "round_to": options.get(CONF_ROUND_TO),
-            "auto_enabled": bool(options.get(CONF_AUTO_ENABLED, False)),
+            "auto_enabled": options.get(CONF_AUTO_ENABLED),
             "auto_day": options.get(CONF_AUTO_DAY),
             "auto_time": options.get(CONF_AUTO_TIME),
         }
@@ -260,27 +260,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "history": history,
     }
 
-    if entry.options.get(CONF_AUTO_ENABLED, False):
+    if entry.options.get(CONF_AUTO_ENABLED) is True:
         auto_day_value = entry.options.get(CONF_AUTO_DAY)
         auto_time_value = entry.options.get(CONF_AUTO_TIME)
         if auto_day_value is None or auto_time_value is None:
-            raise ValueError("Не заданы день и время автоматической отправки")
-        auto_day = int(auto_day_value)
-        parts = str(auto_time_value).split(":")
-        auto_time = time(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
+            _LOGGER.error("Автоматическая отправка включена, но день или время не заданы")
+        else:
+            auto_day = int(auto_day_value)
+            parts = str(auto_time_value).split(":")
+            auto_time = time(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
 
-        async def scheduled(now):
-            scheduled_day = min(auto_day, monthrange(now.year, now.month)[1])
-            if now.day == scheduled_day:
-                try:
-                    await submit("automatic")
-                except Exception:
-                    _LOGGER.exception("Автоматическая отправка БЭЛС не выполнена")
+            async def scheduled(now):
+                scheduled_day = min(auto_day, monthrange(now.year, now.month)[1])
+                if now.day == scheduled_day:
+                    try:
+                        await submit("automatic")
+                    except Exception:
+                        _LOGGER.exception("Автоматическая отправка БЭЛС не выполнена")
 
-        cancel = async_track_time_change(
-            hass, scheduled, hour=auto_time.hour, minute=auto_time.minute, second=auto_time.second
-        )
-        hass.data[DOMAIN][entry.entry_id]["cancel_schedule"] = cancel
+            cancel = async_track_time_change(
+                hass, scheduled, hour=auto_time.hour, minute=auto_time.minute, second=auto_time.second
+            )
+            hass.data[DOMAIN][entry.entry_id]["cancel_schedule"] = cancel
 
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     return True
