@@ -123,7 +123,7 @@ class BelsPanel extends HTMLElement {
     const account = this._escape(config.account || "—");
     const phone = this._escape(config.phone || "—");
     const email = this._escape(config.email || "—");
-    const autoDay = Number(config.auto_day);
+    const autoDay = config.auto_day == null ? NaN : Number(config.auto_day);
     const scheduleDay = Number.isFinite(autoDay) ? (autoDay === 31 ? "последний день месяца" : this._escape(autoDay) + " число месяца") : "не задан";
     const autoSendHint = "<div class='auto-send-hint'><div>Автоматическая отправка показаний: " +
       (config.auto_enabled === true ? "Включена" : config.auto_enabled === false ? "Выключена" : "Не настроена") +
