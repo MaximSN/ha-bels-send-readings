@@ -1,6 +1,8 @@
 # БЭЛС — Home Assistant integration
 
 Интеграция Home Assistant для передачи показаний электросчётчика в БЭЛС.
+<img width="1254" height="1254" alt="Снимок экрана 2026-11-22 111338 (edited)" src="https://github.com/user-attachments/assets/63e02f9a-98ad-4bac-b4fd-174ed53aa784" />
+
 
 ## Возможности
 
