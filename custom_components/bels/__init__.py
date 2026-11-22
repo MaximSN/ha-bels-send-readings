@@ -26,7 +26,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "www" / "bels-panel.js"
 CARD_URL = "/bels/bels-panel.js"
-CARD_VERSION = "0.6.2.6"
+CARD_VERSION = "0.6.3.0"
 
 
 def _normalize_reading(value, label: str, round_to: int, optional: bool = False):
@@ -86,14 +86,14 @@ async def websocket_get_history(hass, connection, msg):
             "phone": entry.data.get(CONF_PHONE, ""),
             "email": entry.data.get(CONF_EMAIL, ""),
             "entities": {
-                "day": options.get(CONF_DAY_ENTITY, "sensor.elektroenergiia"),
+                "day": options.get(CONF_DAY_ENTITY, ""),
                 "night": options.get(CONF_NIGHT_ENTITY, ""),
                 "peak": options.get(CONF_PEAK_ENTITY, ""),
             },
-            "round_to": int(options.get(CONF_ROUND_TO, 50)),
+            "round_to": options.get(CONF_ROUND_TO),
             "auto_enabled": bool(options.get(CONF_AUTO_ENABLED, False)),
-            "auto_day": int(options.get(CONF_AUTO_DAY, 1)),
-            "auto_time": str(options.get(CONF_AUTO_TIME, "09:00:00")),
+            "auto_day": options.get(CONF_AUTO_DAY),
+            "auto_time": options.get(CONF_AUTO_TIME),
         }
 
     connection.send_result(msg["id"], {"entries": entries, "config": config})
@@ -163,7 +163,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         http_status = 0
         try:
             options = entry.options
-            round_to = int(options.get(CONF_ROUND_TO, 50))
+            round_to_value = options.get(CONF_ROUND_TO)
+            if round_to_value is None:
+                raise ValueError("Не задано значение округления в настройках интеграции")
+            round_to = int(round_to_value)
             overrides = overrides or {}
             readings = {}
             fields = (
@@ -179,7 +182,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 else:
                     readings[key] = _reading(
                         hass,
-                        options.get(entity_option, "sensor.elektroenergiia" if key == "day" else ""),
+                        options.get(entity_option),
                         round_to,
                         label,
                         optional,
@@ -258,8 +261,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
 
     if entry.options.get(CONF_AUTO_ENABLED, False):
-        auto_day = int(entry.options.get(CONF_AUTO_DAY, 1))
-        parts = str(entry.options.get(CONF_AUTO_TIME, "09:00:00")).split(":")
+        auto_day_value = entry.options.get(CONF_AUTO_DAY)
+        auto_time_value = entry.options.get(CONF_AUTO_TIME)
+        if auto_day_value is None or auto_time_value is None:
+            raise ValueError("Не заданы день и время автоматической отправки")
+        auto_day = int(auto_day_value)
+        parts = str(auto_time_value).split(":")
         auto_time = time(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
 
         async def scheduled(now):
